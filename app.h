@@ -30,6 +30,7 @@ struct rc_app {
     bool dirty;         /* If true, redraw */
     bool shouldquit;    /* If true, exit main loop */
     bool fullscreen;    /* Set to true when the app is fullscreen */
+    bool autotarget;    /* Override camera look on move */
 
     struct rc_target target;
     struct rc_cam    camera;

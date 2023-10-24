@@ -15,6 +15,9 @@ struct rc_colormap {
 };
 
 
+/** This colormap uses a mapping similar to "Jet" of MATLAB fame, but with a
+ *  superfluous alpha channel---FOUR BYTES
+ */
 struct dose_cmap {
     struct rc_colormap base;
 

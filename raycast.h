@@ -132,7 +132,8 @@ struct rc_screen {
 void rc_target_update(struct rc_target *target, const struct rc_screen *screen);
 
 
-/** @brief Volume raycast @p dose to @p target
+/** @brief Volume raycast @p dose to @p target using maximum-intensity
+ *      (perspective) projection
  *  @param dose
  *      Dose volume
  *  @param target
@@ -141,6 +142,8 @@ void rc_target_update(struct rc_target *target, const struct rc_screen *screen);
  *      Colormap
  *  @param camera
  *      Camera information
+ *  @note This does not write pixel information for dose that it cannot find.
+ *      Set the background color before calling this
  */
 void rc_raycast_dose(const struct rc_dose *dose,
                      struct rc_target     *target,

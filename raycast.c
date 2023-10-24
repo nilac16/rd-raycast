@@ -45,14 +45,12 @@ void rc_cam_lookalong(struct rc_cam *cam, vec_t dir)
     z_xy = xy_project(rc_qrot(cam->quat, z));
     dir_xy = xy_project(dir);
     yaw = rc_qalign(z_xy, dir_xy);
-    if (!isnan(rc_cvtsf(yaw))) {
-        rc_cam_comp_left(cam, yaw);
-    }
+    yaw = (isnan(rc_cvtsf(yaw))) ? rc_set(0.0, 0.0, 0.0, 1.0) : yaw;
+    rc_cam_comp_left(cam, yaw);
     z = rc_qrot(cam->quat, z);
     pitch = rc_qalign(z, dir);
-    if (!isnan(rc_cvtsf(pitch))) {
-        rc_cam_comp_left(cam, pitch);
-    }
+    pitch = (isnan(rc_cvtsf(pitch))) ? rc_set(0.0, 0.0, 0.0, 1.0) : pitch;
+    rc_cam_comp_left(cam, pitch);
 }
 
 

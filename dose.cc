@@ -1,7 +1,15 @@
 #include <array>
+#include <cmath>
 #include <dcmtk/dcmrt/drmdose.h>
 
-using namespace std;    /* fuck you */
+
+template <class FloatingT>
+static bool isgreater(FloatingT x, FloatingT y)
+{
+    static_assert(std::is_floating_point<FloatingT>::value);
+    return std::isgreater(x, y);
+}
+
 
 extern "C" {
 #   include "dose.h"
@@ -175,7 +183,7 @@ static void rc_dose_get_centroid(struct rc_dose *dose)
             }
         }
     }
-    dose->centr = rc_div(sum, rc_permute(sum, _MM_SHUFFLE(3, 3, 3, 3)));
+    dose->centr = rc_vhproj(sum);
     std::cout << "Centroid in pixel coordinates:   " << dose->centr << '\n';
     dose->centr = rc_mvmul4(dose->mat, dose->centr);
     std::cout << "Centroid in ambient coordinates: " << dose->centr << '\n';
@@ -403,6 +411,9 @@ extern "C" int rc_dose_compact(struct rc_dose *dose, double threshold)
     len = (size_t)xlen * ylen * zlen;
     next = new (std::nothrow) double[len];
     if (!next && len) {
+        /* I don't know if operator new() properly sets errno... Probably
+        implementation-defined */
+        errno = ENOMEM;
         return 1;
     }
 

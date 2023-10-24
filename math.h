@@ -298,6 +298,19 @@ static inline vec_t rc_qrot(vec_t quat, vec_t v)
 }
 
 
+/** @brief Project homogeneous coordinates in @p v to the unit affine plane
+ *  @param v
+ *      (Homogeneous) coordinate vector
+ *  @returns @p v with all components divided by its last. Do note that
+ *      supplying a tangent vector to this function will instantly provide you
+ *      with a NaN vector as a result
+ */
+static inline vec_t rc_vhproj(vec_t v)
+{
+    return rc_div(v, rc_permute(v, _MM_SHUFFLE(3, 3, 3, 3)));
+}
+
+
 /** @brief Exponentiate @p quat
  *  @param quat
  *      Quaternion base

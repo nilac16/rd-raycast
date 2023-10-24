@@ -22,3 +22,9 @@ target_link_libraries(${PROJECT_NAME}
                PUBLIC ${DCMTK_LIBRARIES}
                       ${SDL2_LIBRARIES}
                       OpenMP::OpenMP_C)
+
+add_executable(rdreport report.c stb.c cmap.c raycast.c dose.cc math.c)
+
+target_link_libraries(rdreport
+               PUBLIC ${DCMTK_LIBRARIES}
+                      OpenMP::OpenMP_C)

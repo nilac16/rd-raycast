@@ -336,6 +336,12 @@ static int rc_app_await(struct rc_app *app, SDL_Event *e)
 }
 
 
+static void rc_app_lookat_dose(struct rc_app *app)
+{
+    rc_cam_lookat(&app->camera, app->dose.centr);
+}
+
+
 /** @brief Handle the current input
  *  @param app
  *      Application state
@@ -386,6 +392,9 @@ static void rc_app_input(struct rc_app *app)
 
     accel = rc_sub(accel, rc_mul(rc_set1(app->mu_k), app->camera.vel));
     if (rc_cam_update(&app->camera, accel, tau)) {
+        if (app->autotarget) {
+            rc_app_lookat_dose(app);
+        }
         rc_app_mark_dirty(app);
     }
 }
@@ -475,7 +484,7 @@ static int rc_app_motion(struct rc_app *app, SDL_MouseMotionEvent *e)
     Uint32 mstate;
 
     mstate = SDL_GetMouseState(NULL, NULL);
-    if (app->fullscreen || (SDL_BUTTON(1) & mstate)) {
+    if (!app->autotarget && (app->fullscreen || (SDL_BUTTON(1) & mstate))) {
         /* The real question is whether it's faster to just compute the angle
         and sincos here instead of exponentiate the versors */
         yaw = rc_verspow(app->yaw, -e->xrel);
@@ -515,7 +524,8 @@ static int rc_app_wheel(struct rc_app *app, SDL_MouseWheelEvent *e)
 static int rc_app_button(struct rc_app *app, SDL_MouseButtonEvent *e)
 {
     if (e->button == SDL_BUTTON_RIGHT) {
-        rc_cam_lookat(&app->camera, app->dose.centr);
+        rc_app_lookat_dose(app);
+        app->autotarget = !app->autotarget;
         rc_app_mark_dirty(app);
     }
     return 0;
