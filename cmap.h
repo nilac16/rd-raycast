@@ -6,7 +6,10 @@
 #include "dose.h"
 
 
-/** Colormap base class. You know what to do with this */
+/** Colormap base class. You know what to do with this.
+ *  Do note that the raycasting function is aggressively multithreaded, so
+ *  contentious actions within the callback should be fenced and sparse
+ */
 struct rc_colormap {
     void (*func)(struct rc_colormap *this, double dose, void *pixel);
 };

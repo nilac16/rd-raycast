@@ -142,6 +142,46 @@ static void rc_dose_get_spacing(struct rc_dose *dose, const DRTDose &rd)
 }
 
 
+static std::ostream &operator<<(std::ostream &os, vec_t v)
+{
+    RC_ALIGN scal_t spill[4];
+
+    rc_spill(spill, v);
+    os << spill[0] << ", " << spill[1] << ", " << spill[2] << ", " << spill[3];
+    return os;
+}
+
+
+/** @brief Compute the centroid of the dose
+ *  @param dose
+ *      Dose
+ */
+static void rc_dose_get_centroid(struct rc_dose *dose)
+    noexcept
+{
+    union {
+        __m128i  idx;
+        unsigned xmm[4];
+    } u = { .xmm = { 0, 0, 0, 1 } };
+    vec_t sum, pos;
+    size_t i = 0;
+
+    sum = rc_zero();
+    for (u.xmm[2] = 0; u.xmm[2] < dose->dim[2]; u.xmm[2]++) {
+        for (u.xmm[1] = 0; u.xmm[1] < dose->dim[1]; u.xmm[1]++) {
+            for (u.xmm[0] = 0; u.xmm[0] < dose->dim[0]; u.xmm[0]++, i++) {
+                pos = rc_cvtep(u.idx);
+                sum = rc_fmadd(pos, rc_set1(dose->data[i]), sum);
+            }
+        }
+    }
+    dose->centr = rc_div(sum, rc_permute(sum, _MM_SHUFFLE(3, 3, 3, 3)));
+    std::cout << "Centroid in pixel coordinates:   " << dose->centr << '\n';
+    dose->centr = rc_mvmul4(dose->mat, dose->centr);
+    std::cout << "Centroid in ambient coordinates: " << dose->centr << '\n';
+}
+
+
 /** @brief Fetch the pixel data
  *  @param dose
  *      Dose container
@@ -194,6 +234,7 @@ static void rc_dose_get_data(struct rc_dose *dose, const DRTDose &rd)
         throw OFCondition(0, 0, OF_error, "Dose matrix is singular");
     }
     rc_dose_get_pixels(dose, rd);
+    rc_dose_get_centroid(dose);
 }
 
 

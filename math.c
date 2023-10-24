@@ -134,6 +134,7 @@ vec_t rc_qpow(vec_t quat, int pow)
 
 
 vec_t rc_verspow(vec_t vers, int pow)
+/** I think these functions are in need of a rewrite */
 {
     bool neg = pow < 0;
     unsigned p;
@@ -153,5 +154,18 @@ vec_t rc_verspow(vec_t vers, int pow)
             p /= 2;
         }
     }
+    return res;
+}
+
+
+vec_t rc_qalign(vec_t u, vec_t v)
+{
+    vec_t w, res;
+
+    u = rc_qnorm(u);
+    v = rc_qnorm(v);
+    w = rc_qnorm(rc_add(u, v));
+    res = rc_dp(w, v, 0xF8);
+    res = rc_add(res, rc_cross(w, v));
     return res;
 }

@@ -12,10 +12,10 @@ int main(int argc, char *argv[])
         .width  = 512,
         .height = 288,
         .path   = argv[1],
-        .mu_k   = 0.025,
-        .slow   = 0.001,
-        .speed  = 0.01,
-        .turbo  = 0.05
+        .mu_k   = 1.0,
+        .slow   = 0.01,
+        .speed  = 0.5,
+        .turbo  = 1.0
     };
     int res;
 

@@ -20,11 +20,6 @@ struct rc_cam {
 /** @brief Produce a camera struct with origin at zero and null rotation
  *      quaternion. Do not that this is *NOT* equivalent to setting the struct
  *      to zero!
- *  @details The orientation quaternion starts at null rotation, which
- *      corresponds to a real part of one and no vector part. The position is
- *      a coordinate "vector," and must thus contain 1.0 as its projective
- *      component. Note the symmetry: These elements are members of their
- *      respective group kernels, and the representation is identical
  *  @param cam
  *      Camera to initialize
  */
@@ -36,6 +31,27 @@ void rc_cam_default(struct rc_cam *cam);
  *      Camera
  */
 void rc_cam_normalize(struct rc_cam *cam);
+
+
+/** @brief Orient @p cam in the direction of @p dir
+ *  @param cam
+ *      Camera
+ *  @param dir
+ *      Direction tangent vector. This does not have to be unit (and should not
+ *      be normalized by you, because it will be in this function). Note that
+ *      passing a coordinate vector will result in odd behavior
+ */
+void rc_cam_lookalong(struct rc_cam *cam, vec_t dir);
+
+
+/** @brief Orient @p cam towards coordinates @p pos
+ *  @param cam
+ *      Camera
+ *  @param pos
+ *      Target coordinates. This will exhibit unexpected behavior if a tangent
+ *      vector is passed here instead
+ */
+void rc_cam_lookat(struct rc_cam *cam, vec_t pos);
 
 
 /** @brief Left-multiply the camera orientation by @p quat. The result is a
@@ -74,17 +90,7 @@ static inline void rc_cam_comp_right(struct rc_cam *cam, vec_t quat)
  *      Scale factor by which to multiply the velocity
  *  @returns true if the camera position changed, false otherwise
  */
-static inline bool rc_cam_update(struct rc_cam *cam, vec_t accel, scal_t tau)
-{
-    const scal_t threshold = 1e-3;
-    const vec_t og = cam->org;
-    vec_t tstep;
-
-    tstep = rc_set1(tau);
-    cam->vel = rc_fmadd(accel, tstep, cam->vel);
-    cam->org = rc_fmadd(cam->vel, tstep, cam->org);
-    return rc_cvtsf(rc_vsqrnorm(rc_sub(cam->org, og))) > threshold;
-}
+bool rc_cam_update(struct rc_cam *cam, vec_t accel, scal_t tau);
 
 
 /** Pixel information for a target texture. This contains no geometric

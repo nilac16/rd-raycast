@@ -7,6 +7,7 @@ find_package(DCMTK REQUIRED)
 find_package(OpenMP REQUIRED)
 
 set(OPT_FLAGS "-O2 -g0")
+set(STD_FLAGS "-std=c99 -pedantic")
 set(WARN_FLAGS "-Wall -Wextra -W -Werror")
 set(ARCH_FLAGS "-march=znver3")
 

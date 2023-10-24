@@ -18,17 +18,73 @@ void rc_cam_default(struct rc_cam *cam)
 
 void rc_cam_normalize(struct rc_cam *cam)
 {
-    cam->quat = rc_qnorm(cam->quat);
+    cam->quat = rc_vnorm(cam->quat);
+}
+
+
+/** @brief Eliminate the z-component of @p v and normalize it
+ *  @param v
+ *      Vector
+ *  @returns The components of @p v in the xy-plane
+ */
+static vec_t xy_project(vec_t v)
+{
+    RC_ALIGN scal_t spill[4];
+
+    rc_spill(spill, v);
+    spill[2] = 0.0;
+    return rc_load(spill);
+}
+
+
+void rc_cam_lookalong(struct rc_cam *cam, vec_t dir)
+{
+    vec_t z, z_xy, dir_xy, yaw, pitch;
+
+    z = rc_set(0.0, 0.0, 1.0, 0.0);
+    z_xy = xy_project(rc_qrot(cam->quat, z));
+    dir_xy = xy_project(dir);
+    yaw = rc_qalign(z_xy, dir_xy);
+    if (!isnan(rc_cvtsf(yaw))) {
+        rc_cam_comp_left(cam, yaw);
+    }
+    z = rc_qrot(cam->quat, z);
+    pitch = rc_qalign(z, dir);
+    if (!isnan(rc_cvtsf(pitch))) {
+        rc_cam_comp_left(cam, pitch);
+    }
+}
+
+
+void rc_cam_lookat(struct rc_cam *cam, vec_t pos)
+{
+    vec_t diff;
+
+    diff = rc_sub(pos, cam->org);
+    rc_cam_lookalong(cam, diff);
+}
+
+
+bool rc_cam_update(struct rc_cam *cam, vec_t accel, scal_t tau)
+{
+    const scal_t threshold = 1e-3;
+    const vec_t og = cam->org;
+    vec_t tstep;
+
+    tstep = rc_set1(tau);
+    cam->vel = rc_fmadd(accel, tstep, cam->vel);
+    cam->org = rc_fmadd(cam->vel, tstep, cam->org);
+    return isgreater(rc_cvtsf(rc_vsqrnorm(rc_sub(cam->org, og))), threshold);
 }
 
 
 void rc_target_update(struct rc_target *target, const struct rc_screen *screen)
 {
     const double aspect = (double)screen->dim[1] / (double)screen->dim[0];
-    const double pi = RC_PI;
+    const double pi = RC_PI, conv = pi / 360;
     RC_ALIGN scal_t spill[4] = { 0 };
 
-    spill[0] = 2.0 * tan((0.5 * pi / 180.0) * screen->fov);
+    spill[0] = 2.0 * tan(conv * screen->fov);
     spill[1] = aspect * spill[0];
     target->size = rc_load(spill);
 
@@ -188,7 +244,7 @@ struct rc_basis {
  *      are returned; the third component is the origin. All outputs are in
  *      scene coordinates
  *  @param[out] basis
- *      Destination buffer. This is not really a matrix
+ *      Destination buffer
  *  @param camera
  *      Camera containing orientation quaternion
  *  @param target
@@ -200,22 +256,32 @@ static void rc_raycast_basis(struct rc_basis        *basis,
                              const struct rc_target *target,
                              const struct rc_cam    *camera)
 {
-    vec_t offs, half, res[2];
+    vec_t offs, resx, resy, scalx, scaly, two;
 
+    two = rc_set1(2.0);
     basis->x = rc_qrot(camera->quat, rc_set(1.0, 0.0, 0.0, 0.0));
     basis->y = rc_qrot(camera->quat, rc_set(0.0, 1.0, 0.0, 0.0));
     offs = rc_qrot(camera->quat, rc_set(0.0, 0.0, 1.0, 0.0));
-    half = rc_div(target->size, rc_set1(2.0));
-    res[0] = rc_permute(target->res, _MM_SHUFFLE(0, 0, 0, 0));
-    res[1] = rc_permute(target->res, _MM_SHUFFLE(1, 1, 1, 1));
-    offs = rc_fmsub(basis->x, rc_permute(half, _MM_SHUFFLE(0, 0, 0, 0)), offs);
-    offs = rc_fmadd(basis->y, rc_permute(half, _MM_SHUFFLE(1, 1, 1, 1)), offs);
-    basis->org = rc_sub(camera->org, offs);
-    basis->x = rc_mul(basis->x, res[0]);
-    basis->y = rc_mul(basis->y, res[1]);
+    resx = rc_permute(target->res, _MM_SHUFFLE(0, 0, 0, 0));
+    resy = rc_permute(target->res, _MM_SHUFFLE(1, 1, 1, 1));
+    scalx = rc_permute(target->size, _MM_SHUFFLE(0, 0, 0, 0));
+    scaly = rc_permute(target->size, _MM_SHUFFLE(1, 1, 1, 1));
+    scalx = rc_div(rc_sub(resx, scalx), two);
+    scaly = rc_div(rc_sub(resy, scaly), two);
+    offs = rc_fmadd(basis->x, scalx, offs);
+    offs = rc_fmadd(basis->y, scaly, offs);
+    basis->org = rc_add(camera->org, offs);
+    basis->x = rc_mul(basis->x, resx);
+    basis->y = rc_mul(basis->y, resy);
 }
 
 
+/** @brief No dose in sight, just rapidly colormap zero to @p target
+ *  @param target
+ *      Target texture
+ *  @param cmap
+ *      Colormap
+ */
 static void rc_raycast_empty(struct rc_target *target, struct rc_colormap *cmap)
 {
     const unsigned flen = target->tex.dim[0] * target->tex.stride;

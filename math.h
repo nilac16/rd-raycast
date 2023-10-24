@@ -8,10 +8,8 @@
 #include <immintrin.h>
 
 
-/** Kind of annoying that I have to define this every time ngl. Who tf remembers
- *  all those digits of π.... Wait...
- */
-#define RC_PI 3.141592653589793238
+#define RC_PI    3.141592653589793238
+#define RC_ROOT2 1.4142135623730951
 
 
 /** Force proper alignment of spill arrays */
@@ -48,12 +46,16 @@ typedef __m128 vec_t;
 #define rc_fmadd(a, b, c)       _mm_fmadd_ps(a, b, c)
 #define rc_fmsub(a, b, c)       _mm_fmsub_ps(a, b, c)
 
+#define rc_dp(a, b, mask)       _mm_dp_ps(a, b, mask)
+#define rc_rsqrt(v)             _mm_rsqrt_ps(v)
+#define rc_sqrt(v)              _mm_sqrt_ps(v)
+
 #define rc_permute(v, mask)     _mm_permute_ps(v, mask)
 #define rc_permutevar(v, mask)  _mm_permutevar_ps(v, mask)
+#define rc_shuffle(a, b, mask)  _mm_shuffle_ps(a, b, mask)
 
 #define rc_cmp(a, b, op)        _mm_cmp_ps(a, b, op)
 #define rc_testz(a, b)          _mm_testz_ps(a, b)
-//#define rc_testnz(a, b)         _mm_testnzc_ps(a, b)
 #define rc_and(a, b)            _mm_and_ps(a, b)
 #define rc_or(a, b)             _mm_xor_ps(a, b)
 
@@ -66,6 +68,11 @@ typedef __m128 vec_t;
 
 /** @brief Extract the first component of @p v */
 #define rc_cvtsf(v)             _mm_cvtss_f32(v)
+
+/** @brief Convert packed 32-bit integers to a floating-point vector
+ *  @todo I don't like this name, and it's only referenced once so far
+ */
+#define rc_cvtep(v)             _mm_cvtepi32_ps(v)
 
 
 /** @brief Invert 4x4 matrix @p mat
@@ -142,7 +149,8 @@ static inline void rc_mmmul4(const vec_t lhs[], vec_t rhs[])
 
 
 /** @brief Compute the Euclidean cross product of @p a and @p b. The low bits of
- *      the result are zeroed by this operation
+ *      the result are zeroed by this operation (i.e. this will turn coordinate
+ *      vectors into tangent vectors)
  *  @param a
  *      Left operand
  *  @param b
@@ -169,12 +177,13 @@ static inline vec_t rc_cross(vec_t a, vec_t b)
  */
 static inline vec_t rc_vsqrnorm(vec_t v)
 {
-    return _mm_dp_ps(v, v, 0xFF);
+    return rc_dp(v, v, 0xFF);
 }
 
 
 /** @brief Quickly normalize @p v. This function uses the rsqrtps instruction
- *      and as a result, is less accurate
+ *      and as a result, is less accurate. This will turn a zero vector into a
+ *      NaN vector, so be wary of its use
  *  @param v
  *      Vector to normalize
  *  @returns The unit vector pointing in the direction of @p v
@@ -189,12 +198,13 @@ static inline vec_t rc_vnorm(vec_t v)
     vec_t norm;
 
     norm = rc_vsqrnorm(v);
-    norm = _mm_rsqrt_ps(norm);
+    norm = rc_rsqrt(norm);
     return rc_mul(v, norm);
 }
 
 
-/** @brief Fully normalize @p quat
+/** @brief Fully normalize @p quat. This will turn a zero quaternion into a NaN
+ *      quaternion, so be warned
  *  @param quat
  *      Quaternion
  *  @returns The versor corresponding to @p quat. This operation does not use
@@ -207,7 +217,7 @@ static inline vec_t rc_qnorm(vec_t quat)
     vec_t norm;
 
     norm = rc_vsqrnorm(quat);
-    norm = _mm_sqrt_ps(norm);
+    norm = rc_sqrt(norm);
     return rc_div(quat, norm);
 }
 
@@ -247,8 +257,8 @@ static inline vec_t rc_qmul(vec_t q1, vec_t q2)
     acc = rc_fmadd(r2, q1, acc);
     acc = rc_fmadd(r1, q2, acc);
     rc_spill(spill, acc);
-    acc = _mm_dp_ps(q1, q2, 0x71);
-    spill[3] = fma(_mm_cvtss_f32(r1), _mm_cvtss_f32(r2), -_mm_cvtss_f32(acc));
+    acc = rc_dp(q1, q2, 0x71);
+    spill[3] = fma(rc_cvtsf(r1), rc_cvtsf(r2), -rc_cvtsf(acc));
     return rc_load(spill);
 }
 
@@ -307,6 +317,21 @@ vec_t rc_qpow(vec_t quat, int pow);
  *  @returns The result
  */
 vec_t rc_verspow(vec_t vers, int pow);
+
+
+/** @brief Create a versor that will rotate @p u to align with @p v
+ *  @note Do not normalize @p u or @p v if you can help it, because this
+ *      function will
+ *  @param u
+ *      Tangent vector to rotate
+ *  @param v
+ *      Tangent vector to which to align
+ *  @returns A quaternion that will rotate @p u to point along @p v
+ *  @warning If rotation is not possible or needed, this function will return a
+ *      quaternion that contains all NaN! You really *should* check this unless
+ *      you know it will always work (i.e. u . v != 0!)
+ */
+vec_t rc_qalign(vec_t u, vec_t v);
 
 
 static inline float rc_fmaxf(float x, float y)

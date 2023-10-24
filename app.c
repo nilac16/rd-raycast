@@ -131,7 +131,8 @@ static int rc_app_start_sdl(struct rc_app              *app,
 static int rc_app_init_dose(struct rc_app *app, const char *path)
 {
     if (rc_dose_load(&app->dose, path)) {
-        fprintf(stderr, "Couldn't load dose file at %s\n", path);
+        fprintf(stderr, "Couldn't load dose file at %s\n",
+                (path) ? path : "NULL");
         return 1;
     }
     if (rc_dose_compact(&app->dose, 0.01)) {
@@ -295,10 +296,12 @@ static int rc_app_init_view(struct rc_app              *app,
 static int rc_app_init_settings(struct rc_app              *app,
                                 const struct rc_app_params *params)
 {
-    app->mu_k      = params->mu_k;
-    app->spdmult   = params->speed;
-    app->turbomult = params->turbo;
-    app->slowmult  = params->slow;
+    const scal_t mult = 1e-1;   /* Rein them in */
+
+    app->mu_k      = mult * params->mu_k;
+    app->spdmult   = mult * params->speed;
+    app->turbomult = mult * params->turbo;
+    app->slowmult  = mult * params->slow;
     app->keystate = SDL_GetKeyboardState(&app->nkeys);
     return 0;
 }
@@ -339,12 +342,14 @@ static int rc_app_await(struct rc_app *app, SDL_Event *e)
  */
 static void rc_app_input(struct rc_app *app)
 {
+    const scal_t taulim = 100.0;
     vec_t fwd, right, up, accel;
     scal_t tau;
     Uint32 tik;
 
     tik = SDL_GetTicks();
     tau = (scal_t)tik - (scal_t)app->lasttik;
+    tau = taulim * tau / (tau + taulim);
     app->lasttik = tik;
 
     accel = rc_zero();
@@ -466,15 +471,18 @@ static int rc_app_window(struct rc_app *app, SDL_WindowEvent *e)
  */
 static int rc_app_motion(struct rc_app *app, SDL_MouseMotionEvent *e)
 {
-    vec_t inert, body;
+    vec_t yaw, pitch;
     Uint32 mstate;
 
     mstate = SDL_GetMouseState(NULL, NULL);
     if (app->fullscreen || (SDL_BUTTON(1) & mstate)) {
-        inert = rc_verspow(app->yaw, -e->xrel);
-        body = rc_verspow(app->pitch, -e->yrel);
-        rc_cam_comp_left(&app->camera, inert);
-        rc_cam_comp_right(&app->camera, body);
+        /* The real question is whether it's faster to just compute the angle
+        and sincos here instead of exponentiate the versors */
+        yaw = rc_verspow(app->yaw, -e->xrel);
+        pitch = rc_verspow(app->pitch, -e->yrel);
+        rc_cam_comp_left(&app->camera, yaw);
+        rc_cam_comp_right(&app->camera, pitch);
+        rc_cam_normalize(&app->camera);
         rc_app_mark_dirty(app);
     }
     return 0;
@@ -490,9 +498,26 @@ static int rc_app_motion(struct rc_app *app, SDL_MouseMotionEvent *e)
  */
 static int rc_app_wheel(struct rc_app *app, SDL_MouseWheelEvent *e)
 {
-    app->screen.fov = fmax(fmin(app->screen.fov - e->preciseY, 180.0), 1.0);
+    app->screen.fov = fmax(fmin(app->screen.fov - e->preciseY, 179.0), 0.1);
     rc_target_update(&app->target, &app->screen);
     rc_app_mark_dirty(app);
+    return 0;
+}
+
+
+/** @brief Handle a mouse click
+ *  @param app
+ *      Application state
+ *  @param e
+ *      SDL mouse button event
+ *  @returns Zero
+ */
+static int rc_app_button(struct rc_app *app, SDL_MouseButtonEvent *e)
+{
+    if (e->button == SDL_BUTTON_RIGHT) {
+        rc_cam_lookat(&app->camera, app->dose.centr);
+        rc_app_mark_dirty(app);
+    }
     return 0;
 }
 
@@ -566,6 +591,9 @@ static int rc_app_process(struct rc_app *app)
         case SDL_MOUSEWHEEL:
             res = rc_app_wheel(app, &e.wheel);
             break;
+        case SDL_MOUSEBUTTONDOWN:
+            res = rc_app_button(app, &e.button);
+            break;
         case SDL_KEYDOWN:
             res = rc_app_keydown(app, &e.key);
             break;
@@ -602,7 +630,6 @@ int rc_app_run(struct rc_app *app)
     do {
         if (app->dirty) {
             rc_app_redraw(app);
-            rc_cam_normalize(&app->camera);
         }
         //rc_app_await(app, NULL);
         rc_app_input(app);

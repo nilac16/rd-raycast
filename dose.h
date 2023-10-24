@@ -8,7 +8,7 @@
 
 /** A rectangular dose array */
 struct rc_dose {
-    vec_t    centr;     /* Center of dose/centroid in pixel coordinates */
+    vec_t    centr;     /* Center of dose/centroid in ambient coordinates */
     vec_t    mat[4];    /* Affine transformation matrix: Pixel to ambient */
     vec_t    inv[4];    /* Inverse affine matrix: Ambient to pixel */
     unsigned dim[3];    /* Pixel dimensions */
