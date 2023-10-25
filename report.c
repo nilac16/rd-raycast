@@ -126,8 +126,7 @@ static int create_images(const struct rc_dose *dose)
     size_t tsize;
     vec_t axis;
 
-    tsize = sizeof *target.tex.pixels * target.tex.dim[0] * target.tex.dim[1];
-    tsize *= target.tex.stride;
+    tsize = target.tex.stride * target.tex.dim[0] * target.tex.dim[1];
     target.tex.pixels = malloc(tsize);
     if (!target.tex.pixels) {
         perror("Cannot allocate target texture");

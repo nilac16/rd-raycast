@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include "math.h"
+#include "rcmath.h"
 
 
 /** @brief Swap vectors @p x and @p y */

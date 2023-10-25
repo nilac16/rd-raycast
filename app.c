@@ -44,9 +44,17 @@ static int rc_app_create_renderer(struct rc_app *app)
 {
     const int idx = -1;
     const Uint32 flags = SDL_RENDERER_ACCELERATED;
+    SDL_RendererInfo info;
+    Uint32 i;
 
     app->rend = SDL_CreateRenderer(app->wnd, idx, flags);
-    if (!app->rend) {
+    if (app->rend) {
+        SDL_GetRendererInfo(app->rend, &info);
+        puts(info.name);
+        for (i = 0; i < info.num_texture_formats; i++) {
+            printf("  %d\n", info.texture_formats[i]);
+        }
+    } else {
         fprintf(stderr, "Cannot create renderer: %s\n", SDL_GetError());
     }
     return app->rend == NULL;
@@ -130,12 +138,14 @@ static int rc_app_start_sdl(struct rc_app              *app,
  */
 static int rc_app_init_dose(struct rc_app *app, const char *path)
 {
+    const double threshold = 0.01;
+
     if (rc_dose_load(&app->dose, path)) {
         fprintf(stderr, "Couldn't load dose file at %s\n",
                 (path) ? path : "NULL");
         return 1;
     }
-    if (rc_dose_compact(&app->dose, 0.01)) {
+    if (rc_dose_compact(&app->dose, threshold)) {
         fputs("Couldn't compact the dose\n", stderr);
     }
     return 0;
@@ -174,7 +184,7 @@ static int rc_app_init_camera(struct rc_app *app)
     rc_cam_default(&app->camera);
     /* Rotate camera to look in +y direction */
     rot = rc_set(sin(-RC_PI / 4.0), 0.0, 0.0, cos(-RC_PI / 4.0));
-    app->camera.quat = rc_qmul(rot, app->camera.quat);
+    app->camera.quat = rot;//rc_qmul(rot, app->camera.quat);
     sintheta = sin(theta);
     costheta = cos(theta);
     mask = rc_set(sintheta, sintheta, sintheta, costheta);
@@ -342,21 +352,35 @@ static void rc_app_lookat_dose(struct rc_app *app)
 }
 
 
+/** @brief Get the length in milliseconds since the last call to this function.
+ *      Call this function once and discard the result to initialize its state
+ *  @param app
+ *      Application state
+ *  @returns The time difference in ms since this function was last called
+ */
+static scal_t rc_app_tdiff(struct rc_app *app)
+{
+    Uint32 tik, tdiff;
+
+    tik = SDL_GetTicks();
+    tdiff = tik - app->lasttik;
+    app->lasttik = tik;
+    return (scal_t)tdiff;
+}
+
+
 /** @brief Handle the current input
  *  @param app
  *      Application state
  */
 static void rc_app_input(struct rc_app *app)
 {
-    const scal_t taulim = 100.0;
+    const scal_t taulim = 10.0;
     vec_t fwd, right, up, accel;
     scal_t tau;
-    Uint32 tik;
 
-    tik = SDL_GetTicks();
-    tau = (scal_t)tik - (scal_t)app->lasttik;
+    tau = rc_app_tdiff(app);
     tau = taulim * tau / (tau + taulim);
-    app->lasttik = tik;
 
     accel = rc_zero();
     fwd   = rc_qrot(app->camera.quat, rc_set(0.0, 0.0, 1.0, 0.0));
@@ -390,7 +414,7 @@ static void rc_app_input(struct rc_app *app)
         accel = rc_mul(accel, rc_set1(app->spdmult));
     }
 
-    accel = rc_sub(accel, rc_mul(rc_set1(app->mu_k), app->camera.vel));
+    accel = rc_fmadd(rc_set1(-app->mu_k), app->camera.vel, accel);
     if (rc_cam_update(&app->camera, accel, tau)) {
         if (app->autotarget) {
             rc_app_lookat_dose(app);
@@ -632,11 +656,21 @@ static void rc_app_redraw(struct rc_app *app)
 }
 
 
+#if _OPENMP
+extern int omp_get_max_threads(void);
+#   define omp_nthreads() omp_get_max_threads()
+#else
+#   define omp_nthreads() 1
+#endif
+
+
 int rc_app_run(struct rc_app *app)
 {
-    int res;
+    int res, nthrd;
 
-    app->lasttik = SDL_GetTicks();
+    nthrd = omp_nthreads();
+    printf("This machine has %d threads available for raycasting\n", nthrd);
+    rc_app_tdiff(app);
     do {
         if (app->dirty) {
             rc_app_redraw(app);

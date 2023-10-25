@@ -3,7 +3,11 @@
 #ifndef RC_DOSE_H
 #define RC_DOSE_H
 
-#include "math.h"
+#include "rcmath.h"
+
+#if defined(__cplusplus) && __cplusplus
+extern "C" {
+#endif
 
 
 /** A rectangular dose array */
@@ -58,5 +62,9 @@ double rc_dose_nearest(const struct rc_dose *dose, vec_t pos);
  */
 int rc_dose_compact(struct rc_dose *dose, double threshold);
 
+
+#if defined(__cplusplus) && __cplusplus
+}
+#endif
 
 #endif /* RC_DOSE_H */

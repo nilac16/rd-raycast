@@ -4,7 +4,7 @@
 #define RAYCAST_H
 
 #include <stdbool.h>
-#include "math.h"
+#include "rcmath.h"
 #include "dose.h"
 #include "cmap.h"
 
@@ -18,7 +18,7 @@ struct rc_cam {
 
 
 /** @brief Produce a camera struct with origin at zero and null rotation
- *      quaternion. Do not that this is *NOT* equivalent to setting the struct
+ *      quaternion. Do note that this is *NOT* equivalent to setting the struct
  *      to zero!
  *  @param cam
  *      Camera to initialize
@@ -105,6 +105,9 @@ struct rc_texture {
 
 /** A target texture and relevant information. You set the texture components,
  *  but don't touch size and res
+ * 
+ *  TODO: Make this a base class. Curved targets and orthographic targets might
+ *      be interesting
  */
 struct rc_target {
     vec_t             size;     /* The physical size in each dimension */
@@ -142,8 +145,6 @@ void rc_target_update(struct rc_target *target, const struct rc_screen *screen);
  *      Colormap
  *  @param camera
  *      Camera information
- *  @note This does not write pixel information for dose that it cannot find.
- *      Set the background color before calling this
  */
 void rc_raycast_dose(const struct rc_dose *dose,
                      struct rc_target     *target,

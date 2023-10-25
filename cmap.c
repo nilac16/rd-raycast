@@ -1,7 +1,8 @@
 #include "cmap.h"
+#include "rcmath.h"
 
 
-static void dose_cmapfn(struct rc_colormap *this, double dose, void *pixel)
+extern void dose_cmapfn(struct rc_colormap *this, double dose, void *pixel)
 {
     static const unsigned char prot[] = {
           0,   0, 255, 255,
@@ -261,17 +262,15 @@ static void dose_cmapfn(struct rc_colormap *this, double dose, void *pixel)
         255,   6,   0, 255,
         255,   3,   0, 255
     };
-    const size_t len = sizeof prot / 4;
+    const unsigned len = sizeof prot / (sizeof *prot * 4);
     struct dose_cmap *cmap = (struct dose_cmap *)this;
     double rel = dose / cmap->dmax;
     int *dst = (int *)pixel;
-    const int *src;
     unsigned i;
 
     i = (unsigned)(rel * (double)(len - 1));
     i = (i < len) ? i : len;
-    src = (const int *)prot + i;
-    *dst = *src;
+    *dst = ((const int *)prot)[i];
 }
 
 

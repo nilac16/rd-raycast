@@ -6,20 +6,7 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 #include "raycast.h"
-
-
-struct rc_app_params {
-    const char title[50];   /* The window title */
-    int        width;       /* Window width */
-    int        height;      /* Window height */
-
-    const char *path;       /* The path to the initial file */
-
-    scal_t mu_k;
-    scal_t speed;
-    scal_t turbo;
-    scal_t slow;
-};
+#include "params.h"
 
 
 struct rc_app {

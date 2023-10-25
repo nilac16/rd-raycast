@@ -65,7 +65,7 @@ void rc_cam_lookat(struct rc_cam *cam, vec_t pos)
 
 bool rc_cam_update(struct rc_cam *cam, vec_t accel, scal_t tau)
 {
-    const scal_t threshold = 1e-3;
+    const scal_t threshold = (scal_t)1e-3;
     const vec_t og = cam->org;
     vec_t tstep;
 
@@ -82,8 +82,8 @@ void rc_target_update(struct rc_target *target, const struct rc_screen *screen)
     const double pi = RC_PI, conv = pi / 360;
     RC_ALIGN scal_t spill[4] = { 0 };
 
-    spill[0] = 2.0 * tan(conv * screen->fov);
-    spill[1] = aspect * spill[0];
+    spill[0] = (scal_t)(2.0 * tan(conv * screen->fov));
+    spill[1] = (scal_t)aspect * spill[0];
     target->size = rc_load(spill);
 
     spill[0] = (scal_t)target->tex.dim[0];
@@ -142,7 +142,10 @@ static int rc_raycast_intersect(const struct rc_dose *dose,
     vec_t param[2], dim, tau, loc, endp;
     int res = 0;
 
-    dim = rc_set(dose->dim[0], dose->dim[1], dose->dim[2], 1.0);
+    dim = rc_set((scal_t)dose->dim[0],
+                 (scal_t)dose->dim[1],
+                 (scal_t)dose->dim[2],
+                 (scal_t)1.0);
     param[0] = rc_div(rc_sub(rc_zero(), p), t);
     param[1] = rc_div(rc_sub(dim, p), t);
     {   /* x-plane testing */
@@ -247,8 +250,6 @@ struct rc_basis {
  *      Camera containing orientation quaternion
  *  @param target
  *      Target context
- *  @todo Come back to this function later to deal with the fencepost issues.
- *      They will be hardly noticeable at full resolution, but still there!
  */
 static void rc_raycast_basis(struct rc_basis        *basis,
                              const struct rc_target *target,
@@ -284,10 +285,13 @@ static void rc_raycast_empty(struct rc_target *target, struct rc_colormap *cmap)
 {
     const unsigned flen = target->tex.dim[0] * target->tex.stride;
     unsigned char *scan, *pixel;
-    unsigned i, j;
+    unsigned i;
+    int j, jend = target->tex.dim[1];
 
-#pragma omp parallel for private(i, scan, pixel)
-    for (j = 0; j < target->tex.dim[1]; j++) {
+#if _OPENMP
+#   pragma omp parallel for private(i, scan, pixel)
+#endif /* _OPENMP */
+    for (j = 0; j < jend; j++) {
         scan = (unsigned char *)target->tex.pixels + flen;
         for (i = 0; i < target->tex.dim[0]; i++) {
             pixel = scan + i * target->tex.stride;
@@ -304,7 +308,8 @@ void rc_raycast_dose(const struct rc_dose *dose,
 {
     vec_t scanpos, pxpos, tangent;
     struct rc_basis basis;
-    unsigned i, j, offs;
+    unsigned i, offs;
+    int j, jend = (int)target->tex.dim[1];
     double res;
     char *ptr;
 
@@ -314,13 +319,15 @@ void rc_raycast_dose(const struct rc_dose *dose,
     }
     rc_raycast_basis(&basis, target, camera);
 
-#pragma omp parallel for private(i, ptr, offs, scanpos, pxpos, tangent, res)
-    for (j = 0; j < target->tex.dim[1]; j++) {
-        scanpos = rc_fmadd(basis.y, rc_set1((double)j), basis.org);
+#if _OPENMP
+#   pragma omp parallel for private(i, ptr, offs, scanpos, pxpos, tangent, res)
+#endif /* _OPENMP */
+    for (j = 0; j < jend; j++) {
+        scanpos = rc_fmadd(basis.y, rc_set1((scal_t)j), basis.org);
         offs = target->tex.stride * target->tex.dim[0] * j;
         ptr = (char *)target->tex.pixels + offs;
         for (i = 0; i < target->tex.dim[0]; i++) {
-            pxpos = rc_fmadd(basis.x, rc_set1((double)i), scanpos);
+            pxpos = rc_fmadd(basis.x, rc_set1((scal_t)i), scanpos);
             tangent = rc_sub(pxpos, camera->org);
             res = rc_raycast_compute(dose, pxpos, tangent);
             cmap->func(cmap, res, ptr);

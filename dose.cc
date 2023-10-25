@@ -1,33 +1,7 @@
 #include <array>
 #include <cmath>
 #include <dcmtk/dcmrt/drmdose.h>
-
-
-template <class FloatingT>
-static bool isgreater(FloatingT x, FloatingT y)
-{
-    static_assert(std::is_floating_point<FloatingT>::value);
-    return std::isgreater(x, y);
-}
-
-
-extern "C" {
-#   include "dose.h"
-}
-
-
-/** @brief It's just malloc, but wrapped up for mommy's special boy C++.
- *  Every time C++ makes me cast a void pointer I die a bit more inside
- *  @param size
- *      Size of the allocated block in bytes
- *  @returns A pointer to the block or NULL
- */
-template <class PtrT>
-static PtrT *tmalloc(size_t size)
-    noexcept
-{
-    return reinterpret_cast<PtrT *>(malloc(size));
-}
+#include "dose.h"
 
 
 /** @brief Throw @p stat if stat.bad()
@@ -93,9 +67,9 @@ static void rc_dose_get_origin(struct rc_dose *dose, const DRTDose &rd)
     for (i = 0; i < org.size(); i++) {
         ofthrow(rd.getImagePositionPatient(org[i], i));
     }
-    spill[0] = org[0];
-    spill[1] = org[1];
-    spill[2] = org[2];
+    spill[0] = static_cast<scal_t>(org[0]);
+    spill[1] = static_cast<scal_t>(org[1]);
+    spill[2] = static_cast<scal_t>(org[2]);
     spill[3] = 1.0;
     dose->mat[3] = rc_load(spill);
 }
@@ -116,13 +90,13 @@ static void rc_dose_get_ortho(struct rc_dose *dose, const DRTDose &rd)
     for (i = 0; i < orient.size(); i++) {
         ofthrow(rd.getImageOrientationPatient(orient[i], i));
     }
-    spill[0] = orient[0];
-    spill[1] = orient[1];
-    spill[2] = orient[2];
+    spill[0] = static_cast<scal_t>(orient[0]);
+    spill[1] = static_cast<scal_t>(orient[1]);
+    spill[2] = static_cast<scal_t>(orient[2]);
     dose->mat[0] = rc_load(spill);
-    spill[0] = orient[3];
-    spill[1] = orient[4];
-    spill[2] = orient[5];
+    spill[0] = static_cast<scal_t>(orient[3]);
+    spill[1] = static_cast<scal_t>(orient[4]);
+    spill[2] = static_cast<scal_t>(orient[5]);
     dose->mat[1] = rc_load(spill);
     dose->mat[2] = rc_cross(dose->mat[0], dose->mat[1]);
 }
@@ -144,7 +118,7 @@ static void rc_dose_get_spacing(struct rc_dose *dose, const DRTDose &rd)
     ofthrow(rd.getPixelSpacing(res[1], 1));
     ofthrow(rd.getSliceThickness(res[2]));
     for (i = 0; i < res.size(); i++) {
-        vec = rc_set1(res[i]);
+        vec = rc_set1(static_cast<scal_t>(res[i]));
         dose->mat[i] = rc_mul(dose->mat[i], vec);
     }
 }
@@ -179,7 +153,7 @@ static void rc_dose_get_centroid(struct rc_dose *dose)
         for (u.xmm[1] = 0; u.xmm[1] < dose->dim[1]; u.xmm[1]++) {
             for (u.xmm[0] = 0; u.xmm[0] < dose->dim[0]; u.xmm[0]++, i++) {
                 pos = rc_cvtep(u.idx);
-                sum = rc_fmadd(pos, rc_set1(dose->data[i]), sum);
+                sum = rc_fmadd(pos, rc_set1((scal_t)dose->data[i]), sum);
             }
         }
     }

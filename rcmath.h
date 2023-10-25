@@ -15,7 +15,7 @@
 /** Force proper alignment of spill arrays */
 #if defined(__GNUC__) && __GNUC__
 #   define RC_ALIGN __attribute__((aligned(16)))
-#elif defined(MSC_VER) && MSC_VER
+#elif defined(_MSC_VER) && _MSC_VER
 #   define RC_ALIGN __declspec(align(16))
 #else
 /* Hope everything is 16-byte aligned by default */
@@ -73,6 +73,10 @@ typedef __m128 vec_t;
  *  @todo I don't like this name, and it's only referenced once so far
  */
 #define rc_cvtep(v)             _mm_cvtepi32_ps(v)
+
+#if defined(__cplusplus) && __cplusplus
+extern "C" {
+#endif
 
 
 /** @brief Invert 4x4 matrix @p mat
@@ -289,7 +293,7 @@ static inline vec_t rc_vnegate(vec_t v)
  *  @param quat
  *      Unit quaternion
  *  @param v
- *      Vector to rotate. 
+ *      Vector to rotate.
  *  @returns The rotation of @p v
  */
 static inline vec_t rc_qrot(vec_t quat, vec_t v)
@@ -347,32 +351,45 @@ vec_t rc_verspow(vec_t vers, int pow);
 vec_t rc_qalign(vec_t u, vec_t v);
 
 
+#if defined(__cplusplus) && __cplusplus
+}
+#endif  /* MIXED C CXX */
+
+
+
+
+#if !defined(__cplusplus) || !__cplusplus
+
+
+/** Single-precision max-of-two */
 static inline float rc_fmaxf(float x, float y)
 {
     return (isgreater(x, y)) ? x : y;
 }
 
+
+/** Double-precision max-of-two */
 static inline double rc_fmax(double x, double y)
 {
     return (isgreater(x, y)) ? x : y;
 }
 
-#define rc_gmax(x, y) _Generic((x),            \
-        float:  rc_fmaxf(x, y),                \
-        double: rc_fmax(x, y))
 
-
-#include <stdio.h>
-
-static inline char *_rc_qprint(char *buf, vec_t v)
+/** Extended-precision max-of-two */
+static inline long double rc_fmaxl(long double x, long double y)
 {
-    RC_ALIGN scal_t spill[4];
-
-    rc_spill(spill, v);
-    sprintf(buf, "%g,% g,% g,% g", spill[0], spill[1], spill[2], spill[3]);
-    return buf;
+    return (isgreater(x, y)) ? x : y;
 }
-#define rc_qprint(vec) _rc_qprint((char[64]){ }, vec)
+
+
+/** "g" for "generic" */
+#define rc_gmax(x, y) _Generic((x),     \
+        float:       rc_fmaxf(x, y),    \
+        double:      rc_fmax(x, y),     \
+        long double: rc_fmaxl(x, y))
+
+
+#endif /* C ONLY */
 
 
 #endif /* RC_MATH_H */
