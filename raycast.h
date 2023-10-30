@@ -116,20 +116,6 @@ struct rc_target {
 };
 
 
-/** @brief Retrieve the unit tangent vector to the ray corresponding to pixel
- *      coordinates @p i and @p j
- *  @param this
- *      Base class
- *  @param i
- *      Column coordinate
- *  @param j
- *      Row coordinate
- *  @return A *normalized* tangent vector for the line passing through @p this
- *      at @p i and @p j
- */
-typedef vec_t rc_target_tangentfn_t(struct rc_target *this, int i, int j);
-
-
 /** Extra information that cannot be comfortably considered part of the camera
  *  or texture. All of this information should be set by you
  */

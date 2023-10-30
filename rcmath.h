@@ -6,6 +6,7 @@
 #include <tgmath.h>
 #include <stdint.h>
 #include <immintrin.h>
+#include <stdalign.h>
 
 
 #define RC_PI    3.141592653589793238
@@ -13,14 +14,7 @@
 
 
 /** Force proper alignment of spill arrays */
-#if defined(__GNUC__) && __GNUC__
-#   define RC_ALIGN __attribute__((aligned(16)))
-#elif defined(_MSC_VER) && _MSC_VER
-#   define RC_ALIGN __declspec(align(16))
-#else
-/* Hope everything is 16-byte aligned by default */
-#   define RC_ALIGN
-#endif
+#define RC_ALIGN alignas (16)
 
 
 /** Scalar type for the vec_t typedef below */

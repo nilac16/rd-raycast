@@ -35,6 +35,9 @@ struct rc_app {
     struct rc_dose   dose;
     struct rc_win32_cmap cmap;
 
+    UINT      inputlen;
+    RAWINPUT *inputbuf;
+
     LARGE_INTEGER lasttik;
     scal_t        tikmult;      /* Multiply a perf count by this to get ms */
 

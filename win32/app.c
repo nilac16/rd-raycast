@@ -443,7 +443,7 @@ static int rc_app_copy_params(struct rc_app              *app,
 
     nthrd = omp_nthreads();
     wprintf(L"This machine has %d thread%s available for raycasting\n",
-            nthrd, (nthrd == 1) );
+            nthrd, (nthrd == 1) ? L"" : L"s");
     QueryPerformanceFrequency(&freq);
     app->tikmult = (scal_t)1e3 / (scal_t)freq.QuadPart;
     app->mu_k  = mult * params->mu_k;
@@ -502,7 +502,7 @@ static scal_t rc_app_get_tdiff(struct rc_app *app)
  *  @param app
  *      Application state
  */
-static void rc_process_input(struct rc_app *app)
+static void rc_process_keys(struct rc_app *app)
 {
     const int VK_W = 0x57, VK_A = 0x41, VK_S = 0x53, VK_D = 0x44;
     const scal_t taulim = 10.0;
@@ -551,6 +551,32 @@ static void rc_process_input(struct rc_app *app)
         }
         rc_app_mark_redraw(app);
     }
+}
+
+
+/** @brief Process mouse input
+ *  @param app
+ *      Application state
+ */
+static void rc_process_mouse(struct rc_app *app)
+{
+    typedef uint64_t QWORD;     /* hack */
+    alignas(alignof (QWORD)) char buf[1024];
+    RAWINPUT *ptr = (RAWINPUT *)buf;
+    UINT i;
+
+    
+}
+
+
+/** @brief Process input keystrokes and mouse motion
+ *  @param app
+ *      Application state
+ */
+static void rc_process_input(struct rc_app *app)
+{
+    rc_process_keys(app);
+    rc_process_mouse(app);
 }
 
 
