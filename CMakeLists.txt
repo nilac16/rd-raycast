@@ -8,7 +8,7 @@ find_package(OpenMP REQUIRED)
 
 set(OPT_FLAGS "-O2 -g0")
 set(WARN_FLAGS "-Wall -Wextra -W -Werror -pedantic")
-set(ARCH_FLAGS "-march=znver3")
+set(ARCH_FLAGS "-mavx2 -mfma -mbmi")
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)

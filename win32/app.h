@@ -26,6 +26,7 @@ struct rc_app {
 
     BITMAPINFO bmpinfo; /* Target bitmap information for "rapid" blitting */
     
+    bool dirty;
     bool shouldquit;
     bool autotarget;
 
@@ -35,8 +36,8 @@ struct rc_app {
     struct rc_dose   dose;
     struct rc_win32_cmap cmap;
 
-    UINT      inputlen;
-    RAWINPUT *inputbuf;
+    POINT lastpos;  /* Last cursor position */
+    POINT mupdate;  /* Accumulated mouse deflections */
 
     LARGE_INTEGER lasttik;
     scal_t        tikmult;      /* Multiply a perf count by this to get ms */

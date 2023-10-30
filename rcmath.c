@@ -115,7 +115,7 @@ vec_t rc_qpow(vec_t quat, int pow)
     unsigned p;
     vec_t res;
 
-    p = (neg) ? -pow : pow;
+    p = neg ? -pow : pow;
     res = rc_set(0.0, 0.0, 0.0, 1.0);
     while (p) {
         if (p % 2) {
@@ -126,10 +126,7 @@ vec_t rc_qpow(vec_t quat, int pow)
             p /= 2;
         }
     }
-    if (neg) {
-        res = rc_qrecip(res);
-    }
-    return res;
+    return neg ? rc_qrecip(res) : res;
 }
 
 
@@ -140,10 +137,8 @@ vec_t rc_verspow(vec_t vers, int pow)
     unsigned p;
     vec_t res;
 
-    if (neg) {
-        vers = rc_qconj(vers);
-    }
-    p = (neg) ? -pow : pow;
+    vers = neg ? rc_qconj(vers) : vers;
+    p = neg ? -pow : pow;
     res = rc_set(0.0, 0.0, 0.0, 1.0);
     while (p) {
         if (p % 2) {

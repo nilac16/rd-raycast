@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
         .title  = "Raycast window",
         .width  = 512,
         .height = 288,
-        .path   = (argc > 1) ? argv[1] : "",
+        .path   = argc > 1 ? argv[1] : "",
         .mu_k   = (scal_t)1.0,
         .slow   = (scal_t)0.1,
         .speed  = (scal_t)0.5,

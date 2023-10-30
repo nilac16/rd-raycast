@@ -186,7 +186,7 @@ static void rc_dose_get_pixels(struct rc_dose *dose, const DRTDose &rd)
         throw OFCondition(0,
                           0,
                           OF_error,
-                          (len) ? "Not enough memory" : "Empty image");
+                          len ? "Not enough memory" : "Empty image");
     }
     dest = data.get();
     for (k = 0; k < dose->dim[2]; k++) {

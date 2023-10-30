@@ -142,7 +142,7 @@ static int rc_app_init_dose(struct rc_app *app, const char *path)
 
     if (rc_dose_load(&app->dose, path)) {
         fprintf(stderr, "Couldn't load dose file at %s\n",
-                (path) ? path : "NULL");
+                path ? path : "NULL");
         return 1;
     }
     if (rc_dose_compact(&app->dose, threshold)) {
@@ -222,7 +222,7 @@ static void rc_app_awaken(struct rc_app *app)
     res = SDL_PushEvent(&e);
     if (res < 1) {
         fprintf(stderr, "Could not push awaken event: %s\n",
-                (res) ? SDL_GetError() : "Event was filtered");
+                res ? SDL_GetError() : "Event was filtered");
     }
 }
 
@@ -369,11 +369,12 @@ static scal_t rc_app_tdiff(struct rc_app *app)
 }
 
 
-/** @brief Handle the current input
+/** @brief Handle the current keyboard input
  *  @param app
  *      Application state
+ *  @returns true if a change occurred
  */
-static void rc_app_input(struct rc_app *app)
+static void rc_update_keys(struct rc_app *app)
 {
     const scal_t taulim = 10.0;
     vec_t fwd, right, up, accel;
@@ -421,6 +422,39 @@ static void rc_app_input(struct rc_app *app)
         }
         rc_app_mark_dirty(app);
     }
+}
+
+
+/** @brief Handle the accumulated mouse input
+ *  @param app
+ *      Application state
+ *  @returns true if a change occurred
+ */
+static void rc_update_mouse(struct rc_app *app)
+{
+    vec_t yaw, pitch;
+
+    if (app->dx || app->dy) {
+        yaw = rc_verspow(app->yaw, app->dx);
+        pitch = rc_verspow(app->pitch, app->dy);
+        rc_cam_comp_left(&app->camera, yaw);
+        rc_cam_comp_right(&app->camera, pitch);
+        rc_cam_normalize(&app->camera);
+        app->dx = 0;
+        app->dy = 0;
+        rc_app_mark_dirty(app);
+    }
+}
+
+
+/** @brief Handle HID input
+ *  @param app
+ *      App state
+ */
+static void rc_process_input(struct rc_app *app)
+{
+    rc_update_keys(app);
+    rc_update_mouse(app);
 }
 
 
@@ -504,19 +538,12 @@ static int rc_app_window(struct rc_app *app, SDL_WindowEvent *e)
  */
 static int rc_app_motion(struct rc_app *app, SDL_MouseMotionEvent *e)
 {
-    vec_t yaw, pitch;
     Uint32 mstate;
 
     mstate = SDL_GetMouseState(NULL, NULL);
     if (!app->autotarget && (app->fullscreen || (SDL_BUTTON(1) & mstate))) {
-        /* The real question is whether it's faster to just compute the angle
-        and sincos here instead of exponentiate the versors */
-        yaw = rc_verspow(app->yaw, -e->xrel);
-        pitch = rc_verspow(app->pitch, -e->yrel);
-        rc_cam_comp_left(&app->camera, yaw);
-        rc_cam_comp_right(&app->camera, pitch);
-        rc_cam_normalize(&app->camera);
-        rc_app_mark_dirty(app);
+        app->dx -= e->xrel;
+        app->dy -= e->yrel;
     }
     return 0;
 }
@@ -531,7 +558,9 @@ static int rc_app_motion(struct rc_app *app, SDL_MouseMotionEvent *e)
  */
 static int rc_app_wheel(struct rc_app *app, SDL_MouseWheelEvent *e)
 {
-    app->screen.fov = fmax(fmin(app->screen.fov - e->preciseY, 179.0), 0.1);
+    const double lo = 0.1, hi = 179.0;
+
+    app->screen.fov = rc_fclamp(app->screen.fov - e->preciseY, lo, hi);
     rc_target_update(&app->target, &app->screen);
     rc_app_mark_dirty(app);
     return 0;
@@ -676,7 +705,7 @@ int rc_app_run(struct rc_app *app)
             rc_app_redraw(app);
         }
         //rc_app_await(app, NULL);
-        rc_app_input(app);
+        rc_process_input(app);
         res = rc_app_process(app);
     } while (!app->shouldquit);
     return res;

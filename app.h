@@ -18,6 +18,7 @@ struct rc_app {
     bool shouldquit;    /* If true, exit main loop */
     bool fullscreen;    /* Set to true when the app is fullscreen */
     bool autotarget;    /* Override camera look on move */
+    bool capture;
 
     struct rc_target target;
     struct rc_cam    camera;
@@ -28,6 +29,9 @@ struct rc_app {
     /* Rotation quaternions for moving the camera */
     vec_t pitch;    /* Pitch the camera up and down about ITS x-axis */
     vec_t yaw;      /* Yaw the camera left and right about SCENE z-axis */
+
+    int dx;         /* Accumulated horizontal mouse motion */
+    int dy;         /* Accumulated vertical mouse motion */
 
     int          nkeys;       /* The size of keystate */
     const Uint8 *keystate;    /* SDL's keystate buffer */

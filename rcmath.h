@@ -13,10 +13,6 @@
 #define RC_ROOT2 1.4142135623730951
 
 
-/** Force proper alignment of spill arrays */
-#define RC_ALIGN alignas (16)
-
-
 /** Scalar type for the vec_t typedef below */
 typedef float scal_t;
 
@@ -25,6 +21,10 @@ typedef float scal_t;
  *  element, not the first
  */
 typedef __m128 vec_t;
+
+
+/** Force proper alignment of spill arrays */
+#define RC_ALIGN alignas (alignof (vec_t))
 
 
 #define rc_spill(addr, vec)     _mm_store_ps(addr, vec)
@@ -336,11 +336,11 @@ vec_t rc_verspow(vec_t vers, int pow);
  *  @param u
  *      Tangent vector to rotate
  *  @param v
- *      Tangent vector to which to align
+ *      Tangent vector with which to align
  *  @returns A quaternion that will rotate @p u to point along @p v
- *  @warning If rotation is not possible or needed, this function will return a
- *      quaternion that contains all NaN! You really *should* check this unless
- *      you know it will always work (i.e. u . v != 0!)
+ *  @warning If rotation is not possible, this function will return a quaternion
+ *      that contains all NaN! You really *should* check this unless you know it
+ *      will always work (i.e. neither @p u nor @p v are zero vectors)
  */
 vec_t rc_qalign(vec_t u, vec_t v);
 
@@ -358,29 +358,77 @@ vec_t rc_qalign(vec_t u, vec_t v);
 /** Single-precision max-of-two */
 static inline float rc_fmaxf(float x, float y)
 {
-    return (isgreater(x, y)) ? x : y;
+    return isgreater(x, y) ? x : y;
+}
+
+static inline float rc_fminf(float x, float y)
+{
+    return isless(x, y) ? x : y;
+}
+
+static inline float rc_fclampf(float x, float lo, float hi)
+{
+    return rc_fminf(rc_fmaxf(x, lo), hi);
 }
 
 
 /** Double-precision max-of-two */
 static inline double rc_fmax(double x, double y)
 {
-    return (isgreater(x, y)) ? x : y;
+    return isgreater(x, y) ? x : y;
+}
+
+static inline double rc_fmin(double x, double y)
+{
+    return isless(x, y) ? x : y;
+}
+
+static inline double rc_fclamp(double x, double lo, double hi)
+{
+    return rc_fmin(rc_fmax(x, lo), hi);
 }
 
 
 /** Extended-precision max-of-two */
 static inline long double rc_fmaxl(long double x, long double y)
 {
-    return (isgreater(x, y)) ? x : y;
+    return isgreater(x, y) ? x : y;
+}
+
+static inline long double rc_fminl(long double x, long double y)
+{
+    return isless(x, y) ? x : y;
+}
+
+static inline long double rc_fclampl(long double x,
+                                     long double lo,
+                                     long double hi)
+{
+    return rc_fminl(rc_fmaxl(x, lo), hi);
 }
 
 
-/** "g" for "generic" */
-#define rc_gmax(x, y) _Generic((x),     \
+/** @brief Find the maximum of (x, y) */
+#define rc_fmax(x, y) _Generic((x),     \
         float:       rc_fmaxf(x, y),    \
         double:      rc_fmax(x, y),     \
         long double: rc_fmaxl(x, y))
+
+
+/** @brief Find the minimum of (x, y) */
+#define rc_fmin(x, y) _Generic((x),     \
+        float:       rc_fminf(x, y),    \
+        double:      rc_fmin(x, y),     \
+        long double: rc_fminl(x, y))
+
+
+/** @brief Clamp @p x to the range [lo, hi] (i.e. if @p x is out of range then
+ *      it is set to the closest bounding value)
+ */
+#define rc_fclamp(x, lo, hi) _Generic((x),      \
+        float:       rc_fclampf(x, lo, hi),     \
+        double:      rc_fclamp(x, lo, hi),      \
+        long double: rc_fclampl(x, lo, hi))
 
 
 #endif /* C ONLY */

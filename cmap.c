@@ -269,7 +269,7 @@ extern void dose_cmapfn(struct rc_colormap *this, double dose, void *pixel)
     unsigned i;
 
     i = (unsigned)(rel * (double)(len - 1));
-    i = (i < len) ? i : len;
+    i = i < len ? i : len;
     *dst = ((const int *)prot)[i];
 }
 

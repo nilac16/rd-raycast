@@ -45,11 +45,11 @@ void rc_cam_lookalong(struct rc_cam *cam, vec_t dir)
     z_xy = xy_project(rc_qrot(cam->quat, z));
     dir_xy = xy_project(dir);
     yaw = rc_qalign(z_xy, dir_xy);
-    yaw = (isnan(rc_cvtsf(yaw))) ? rc_set(0.0, 0.0, 0.0, 1.0) : yaw;
+    yaw = isnan(rc_cvtsf(yaw)) ? rc_set(0.0, 0.0, 0.0, 1.0) : yaw;
     rc_cam_comp_left(cam, yaw);
     z = rc_qrot(cam->quat, z);
     pitch = rc_qalign(z, dir);
-    pitch = (isnan(rc_cvtsf(pitch))) ? rc_set(0.0, 0.0, 0.0, 1.0) : pitch;
+    pitch = isnan(rc_cvtsf(pitch)) ? rc_set(0.0, 0.0, 0.0, 1.0) : pitch;
     rc_cam_comp_left(cam, pitch);
 }
 
@@ -225,7 +225,7 @@ static double rc_raycast_compute(const struct rc_dose *dose,
         end = (int)rc_cvtsf(params[3]);
         for (; tau < end; tau += 1) {
             next = rc_dose_nearest(dose, pos);
-            res = rc_gmax(next, res);
+            res = rc_fmax(next, res);
             pos = rc_add(pos, tangent);
         }
     }

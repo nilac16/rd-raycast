@@ -43,7 +43,8 @@ void rc_dose_clear(struct rc_dose *dose);
  *  @param dose
  *      Dose
  *  @param pos
- *      Real pixel position. This is not bounds checked
+ *      Real-valued pixel position. If this is out-of-bounds then zero is
+ *      returned instead
  *  @returns The nearest @p dose value to @p pos
  */
 double rc_dose_nearest(const struct rc_dose *dose, vec_t pos);

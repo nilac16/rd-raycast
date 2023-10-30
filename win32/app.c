@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include "app.h"
 #include "error.h"
+#include <windowsx.h>
 #include <hidusage.h>
 
 
@@ -9,6 +10,7 @@
 extern void dose_cmapfn(struct rc_colormap *this, double dose, void *pixel);
 
 
+/** @brief Colormap the pixel for BGRA then swap B and R */
 static void rc_win32_cmapfn(struct rc_colormap *this, double dose, void *pixel)
 {
     union {
@@ -17,8 +19,7 @@ static void rc_win32_cmapfn(struct rc_colormap *this, double dose, void *pixel)
     } px;
     unsigned char swap;
 
-    dose_cmapfn(this, dose, pixel);
-    px.value = *(int *)pixel;
+    dose_cmapfn(this, dose, &px.value);
     swap = px.bytes[0];
     px.bytes[0] = px.bytes[2];
     px.bytes[2] = swap;
@@ -70,6 +71,11 @@ static LRESULT rc_app_wndcreate(HWND hwnd, LPARAM lp)
  *  @returns
  */
 static LRESULT rc_app_wndpaint(HWND hwnd)
+/** I should find a better way to do this. Surely Direct2D offers a way to lock
+ *  surface pixels like SDL does
+ * 
+ *  Do also consider writing this in OpenGL with shaders
+ */
 {
     struct rc_app *app;
     PAINTSTRUCT ps;
@@ -77,7 +83,6 @@ static LRESULT rc_app_wndpaint(HWND hwnd)
     HDC hdc;
 
     app = rc_get_state(hwnd);
-    rc_raycast_dose(&app->dose, &app->target, &app->cmap.base, &app->camera);
     hdc = BeginPaint(hwnd, &ps);
     GetClientRect(hwnd, &rect);
     StretchDIBits(hdc,
@@ -104,7 +109,8 @@ static LRESULT rc_app_wndpaint(HWND hwnd)
  */
 static void rc_app_mark_redraw(struct rc_app *app)
 {
-    InvalidateRect(app->hwnd, NULL, FALSE);
+    /* InvalidateRect(app->hwnd, NULL, FALSE); */
+    app->dirty = true;
 }
 
 
@@ -157,6 +163,47 @@ static LRESULT rc_app_wndrbutton(HWND hwnd, LPARAM lp)
 }
 
 
+/** @brief Handle mouse motion */
+static LRESULT rc_app_mousemove(HWND hwnd, WPARAM wp, LPARAM lp)
+{
+    struct rc_app *app;
+    POINT loc, dp;
+
+    app = rc_get_state(hwnd);
+    loc.x = GET_X_LPARAM(lp);
+    loc.y = GET_Y_LPARAM(lp);
+    if (!app->autotarget && (wp & MK_LBUTTON)) {
+        dp.x = app->lastpos.x - loc.x;
+        dp.y = app->lastpos.y - loc.y;
+        app->mupdate.x += dp.x;
+        app->mupdate.y += dp.y;
+    }
+    app->lastpos = loc;
+    return 0;
+}
+
+
+/** @brief Mouse wheel has been scrolled
+ *  @param hwnd
+ *      Main window handle
+ *  @param wp
+ *      WM_MOUSEWHEEL WPARAM
+ */
+static LRESULT rc_app_mousewheel(HWND hwnd, WPARAM wp)
+{
+    const double lo = 0.1, hi = 179.0;
+    struct rc_app *app;
+    double diff;
+
+    app = rc_get_state(hwnd);
+    diff = (double)GET_WHEEL_DELTA_WPARAM(wp) / (double)WHEEL_DELTA;
+    app->screen.fov = rc_fclamp(app->screen.fov - diff, lo, hi);
+    rc_target_update(&app->target, &app->screen);
+    rc_app_mark_redraw(app);
+    return 0;
+}
+
+
 /** @brief Main window callback function
  *  @param hwnd
  *      Main window handle
@@ -174,6 +221,12 @@ static LRESULT CALLBACK rc_app_wndproc(HWND   hwnd, UINT   msg,
     LRESULT res = 0;
 
     switch (msg) {
+    case WM_MOUSEWHEEL:
+        res = rc_app_mousewheel(hwnd, wp);
+        break;
+    case WM_MOUSEMOVE:
+        res = rc_app_mousemove(hwnd, wp, lp);
+        break;
     case WM_RBUTTONDOWN:
         res = rc_app_wndrbutton(hwnd, lp);
         break;
@@ -502,7 +555,7 @@ static scal_t rc_app_get_tdiff(struct rc_app *app)
  *  @param app
  *      Application state
  */
-static void rc_process_keys(struct rc_app *app)
+static bool rc_process_keys(struct rc_app *app)
 {
     const int VK_W = 0x57, VK_A = 0x41, VK_S = 0x53, VK_D = 0x44;
     const scal_t taulim = 10.0;
@@ -549,23 +602,29 @@ static void rc_process_keys(struct rc_app *app)
         if (app->autotarget) {
             rc_cam_lookat(&app->camera, app->dose.centr);
         }
-        rc_app_mark_redraw(app);
+        return true;
     }
+    return false;
 }
 
 
-/** @brief Process mouse input
- *  @param app
- *      Application state
- */
-static void rc_process_mouse(struct rc_app *app)
+/** @brief Update the camera heading with accumulated mouse movements */
+static bool rc_process_mouse(struct rc_app *app)
 {
-    typedef uint64_t QWORD;     /* hack */
-    alignas(alignof (QWORD)) char buf[1024];
-    RAWINPUT *ptr = (RAWINPUT *)buf;
-    UINT i;
+    vec_t yaw, pitch;
 
-    
+    if (app->mupdate.x || app->mupdate.y) {
+        yaw = rc_verspow(app->yaw, app->mupdate.x);
+        pitch = rc_verspow(app->pitch, app->mupdate.y);
+        rc_cam_comp_left(&app->camera, yaw);
+        rc_cam_comp_right(&app->camera, pitch);
+        rc_cam_normalize(&app->camera);
+        app->mupdate.x = 0;
+        app->mupdate.y = 0;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 
@@ -575,8 +634,13 @@ static void rc_process_mouse(struct rc_app *app)
  */
 static void rc_process_input(struct rc_app *app)
 {
-    rc_process_keys(app);
-    rc_process_mouse(app);
+    bool kyupd8, mupd8;
+
+    kyupd8 = rc_process_keys(app);
+    mupd8 = rc_process_mouse(app);
+    if (kyupd8 || mupd8) {
+        rc_app_mark_redraw(app);
+    }
 }
 
 
@@ -605,18 +669,34 @@ static int rc_process_messages(struct rc_app *app)
 }
 
 
-int rc_app_run(struct rc_app *app)
+/** @brief Update the application state ahead of processing messages
+ *  @param app
+ *      App state buffer
+ */
+static void rc_app_update(struct rc_app *app)
 {
     HWND hfocus;
+
+    hfocus = GetFocus();
+    if (hfocus == app->hwnd) {
+        rc_process_input(app);
+    }
+    if (app->dirty) {
+        rc_raycast_dose(&app->dose, &app->target, &app->cmap, &app->camera);
+        InvalidateRect(app->hwnd, NULL, FALSE);
+        app->dirty = false;
+    }
+}
+
+
+int rc_app_run(struct rc_app *app)
+{
     int res;
 
     ShowWindow(app->hwnd, 1);
     rc_app_get_tdiff(app);
     do {
-        hfocus = GetFocus();
-        if (hfocus == app->hwnd) {
-            rc_process_input(app);
-        }
+        rc_app_update(app);
         res = rc_process_messages(app);
     } while (!app->shouldquit);
     return res;
