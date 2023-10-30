@@ -19,7 +19,7 @@ struct rc_colormap {
 struct dose_cmap {
     struct rc_colormap base;
 
-    double dmax;
+    double norm;    /* Inverse of the maximum dose */
 };
 
 

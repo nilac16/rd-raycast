@@ -264,7 +264,7 @@ extern void dose_cmapfn(struct rc_colormap *this, double dose, void *pixel)
     };
     const unsigned len = sizeof prot / (sizeof *prot * 4);
     struct dose_cmap *cmap = (struct dose_cmap *)this;
-    double rel = dose / cmap->dmax;
+    double rel = dose * cmap->norm;
     int *dst = (int *)pixel;
     unsigned i;
 
@@ -277,5 +277,5 @@ extern void dose_cmapfn(struct rc_colormap *this, double dose, void *pixel)
 void dose_cmap_init(struct dose_cmap *cmap, double dosemax)
 {
     cmap->base.func = dose_cmapfn;
-    cmap->dmax = dosemax;
+    cmap->norm = 1.0 / dosemax;
 }
