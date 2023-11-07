@@ -714,12 +714,11 @@ int rc_app_run(struct rc_app *app)
 
 void rc_app_close(struct rc_app *app)
 {
-    if (!app) {
-        return;
+    if (app) {
+        SDL_DestroyTexture(app->tex);
+        SDL_DestroyRenderer(app->rend);
+        SDL_DestroyWindow(app->wnd);
+        rc_dose_clear(&app->dose);
     }
-    SDL_DestroyTexture(app->tex);
-    SDL_DestroyRenderer(app->rend);
-    SDL_DestroyWindow(app->wnd);
-    rc_dose_clear(&app->dose);
     SDL_Quit();
 }

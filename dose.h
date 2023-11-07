@@ -57,9 +57,11 @@ double rc_dose_nearest(const struct rc_dose *dose, vec_t pos);
  *  @param dose
  *      Dose to compact
  *  @param threshold
- *      Percent of max dose above which the point shall be retained
+ *      PROPORTION (i.e. <= 1.0) of max dose above which the point shall be
+ *      retained
  *  @returns Nonzero if there is not enough memory to complete this operation.
- *      On error, errno(3) will be set to the relevant value
+ *      On error, errno(3) will be set to the relevant value. On failure,
+ *      @p dose is still valid
  */
 int rc_dose_compact(struct rc_dose *dose, double threshold);
 
