@@ -38,19 +38,6 @@ target_link_libraries(${PROJECT_NAME}
                       OpenMP::OpenMP_C)
 
 
-add_executable(rdreport
-              report.c
-              stb.c
-              cmap.c
-              raycast.c
-              dose.cc
-              rcmath.c)
-
-target_link_libraries(rdreport
-               PUBLIC ${DCMTK_LIBRARIES}
-                      OpenMP::OpenMP_C)
-
-
 add_executable(spin
               spin/spin.c
               spin/params.c
