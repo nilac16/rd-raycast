@@ -9,12 +9,14 @@ static int anim_init_picture(struct anim *anim, const struct params *p)
         fputs("Failed to initialize WebPConfig for frame data\n", stderr);
         return 1;
     }
+    anim->cfg.lossless = 0;
+    anim->cfg.quality = p->quality;
     if (!WebPPictureInit(&anim->pic)) {
         fputs("Failed initializing the frame picture object\n", stderr);
         return 1;
     }
     anim->pic.use_argb = 1;
-    anim->pic.width = p->width;
+    anim->pic.width  = p->width;
     anim->pic.height = p->height;
     return 0;
 }
@@ -99,7 +101,7 @@ int anim_write(struct anim *anim, const char *path)
         return 1;
     }
     if (!fwrite(data.bytes, data.size, 1UL, fp)) {
-        perror("Cannot write all data to output file");
+        perror("Could not write all data to output file");
     }
     fclose(fp);
     return 0;

@@ -9,21 +9,25 @@
 static int main_optcb(int idx, unsigned count, char *args[], void *data);
 
 static struct optspec opts[] = {
-    { 'a', "angle",  1, main_optcb },
-    { 'd', "dist",   1, main_optcb },
-    { 'f', "fov",    1, main_optcb },
-    { 'n', "frames", 1, main_optcb },
-    { 't', "time",   1, main_optcb },
-    { 'w', "width",  1, main_optcb },
-    { 'h', "height", 1, main_optcb },
-    { 0,   "dim",    1, main_optcb },
-    { 0,   "res",    1, main_optcb },
+    { .shrt = 'a', .lng = "angle",   .args = 1, .func = main_optcb },
+    { .shrt = 'd', .lng = "dist",    .args = 1, .func = main_optcb },
+    { .shrt = 'f', .lng = "fov",     .args = 1, .func = main_optcb },
+    { .shrt = 'q', .lng = "quality", .args = 1, .func = main_optcb },
+    { .shrt = 'o', .lng = "offset",  .args = 3, .func = main_optcb },
+    { .shrt = 'n', .lng = "frames",  .args = 1, .func = main_optcb },
+    { .shrt = 't', .lng = "time",    .args = 1, .func = main_optcb },
+    { .shrt = 'w', .lng = "width",   .args = 1, .func = main_optcb },
+    { .shrt = 'h', .lng = "height",  .args = 1, .func = main_optcb },
+    { .shrt = 0,   .lng = "dim",     .args = 2, .func = main_optcb },
+    { .shrt = 0,   .lng = "res",     .args = 2, .func = main_optcb },
 };
 
 enum {
     OPT_ANGLE,
     OPT_DIST,
     OPT_FOV,
+    OPT_QUALITY,
+    OPT_OFFSET,
     OPT_FRAMES,
     OPT_FTIME,
     OPT_WIDTH,
@@ -34,20 +38,21 @@ enum {
 
 
 const char *spin_get_usage_opt(void)
-/** I wonder how simple this would be to automate. It would have to obey the 80-
- *  column limit
+/** I wonder how simple this would be to automate. Might be doable with macros
  */
 {
     static const char *options =
-"  -a, --angle  DEGREES Set the viewing colatitude angle to DEGREES\n"
-"  -d, --dist   DIST    Set the viewing distance to DIST\n"
-"  -f, --fov    DEGREES Set the field of view to DEGREES\n"
-"  -n, --frames COUNT   Set the number of frames to COUNT\n"
-"  -t, --time   MS      Set the frame time to MS\n"
-"  -w, --width  COUNT   Set the image width to COUNT pixels\n"
-"  -h, --height COUNT   Set the image height to COUNT pixels\n"
-"      --res    X Y     Set the image dimension to X horizontal pixels and Y\n"
-"      --dim    X Y     vertical pixels\n";
+"  -a, --angle   DEGREES    Set the viewing colatitude angle to DEGREES\n"
+"  -d, --dist    DIST       Set the viewing distance to DIST\n"
+"  -f, --fov     DEGREES    Set the field of view to DEGREES\n"
+"  -q, --quality PERCENT    Set the frame compression quality to PERCENT\n"
+"  -o, --offset  X Y Z      Set the components  centroid\n"
+"  -n, --frames  COUNT      Set the number of frames to COUNT\n"
+"  -t, --time    MS         Set the frame time to MS\n"
+"  -w, --width   COUNT      Set the image width to COUNT pixels\n"
+"  -h, --height  COUNT      Set the image height to COUNT pixels\n"
+"      --res     X Y        Set the image dimensions to X horizontal pixels and Y\n"
+"      --dim     X Y        vertical pixels\n";
 
     return options;
 }
@@ -74,6 +79,13 @@ static int main_optcb(int idx, unsigned count, char *args[], void *data)
         break;
     case OPT_FOV:
         p->fov = atof(args[0]);
+        break;
+    case OPT_QUALITY:
+        p->quality = atof(args[0]);
+        p->quality = rc_fclamp(p->quality, 0.0f, 100.0f);
+        break;
+    case OPT_OFFSET:
+        p->offset = rc_set(atof(args[0]), atof(args[1]), atof(args[2]), 0.0);
         break;
     case OPT_FRAMES:
         p->fcnt = atoi(args[0]);

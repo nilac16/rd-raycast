@@ -62,19 +62,20 @@ static int main_create_frames(struct scene        *sc,
     double sect = (RC_PI * 2.0) / (double)p->fcnt;
     double phi, theta = p->colat * (RC_PI / 180.0);
     double costheta, sintheta, cosphi, sinphi;
-    vec_t disp, radius;
+    vec_t disp, radius, centr;
     int i;
 
     costheta = cos(theta);
     sintheta = sin(theta);
     radius = rc_set1((scal_t)p->dist);
+    centr = rc_add(sc->dose.centr, p->offset);
     for (i = 0; i < p->fcnt; i++) {
         phi = (double)i * sect;
         cosphi = cos(phi);
         sinphi = sin(phi);
         disp = rc_set(sintheta * sinphi, -sintheta * cosphi, costheta, 0.0);
-        sc->camera.org = rc_fmadd(disp, radius, sc->dose.centr);
-        rc_cam_lookat(&sc->camera, sc->dose.centr);
+        sc->camera.org = rc_fmadd(disp, radius, centr);
+        rc_cam_lookat(&sc->camera, centr);
         rc_raycast_dose(&sc->dose, &sc->target, &sc->cmap.base, &sc->camera);
         if (anim_add_frame(anim, sc->target.tex.pixels)) {
             return 1;
@@ -119,15 +120,17 @@ static void main_print_usage(void)
 int main(int argc, char *argv[])
 {
     struct params params = {
-        .colat  = 90,
-        .dist   = 200,
-        .fov    = 75,
-        .fcnt   = 8,
-        .ftime  = 1000 / params.fcnt,
-        .width  = 512,
-        .height = 512,
-        .file   = NULL,
-        .output = "output.webp"
+        .colat   = 90,
+        .dist    = 200,
+        .fov     = 75,
+        .quality = 50.0f,
+        .offset  = rc_zero(),
+        .fcnt    = 8,
+        .ftime   = 1000 / params.fcnt,
+        .width   = 512,
+        .height  = 512,
+        .file    = NULL,
+        .output  = "output.webp"
     };
 
     if (spin_parse_opt(argc, argv, &params)) {
@@ -142,13 +145,19 @@ int main(int argc, char *argv[])
            "  Colatitude:  %g degrees\n"
            "  Distance:    %g units\n"
            "  FOV:         %g degrees\n"
+           "  Quality:     %.2f%%\n"
+           "  Offset:      %g %g %g\n"
            "  Frame count: %d\n"
            "  Frame time:  %d ms\n"
            "  Width:       %d pixels\n"
            "  Height:      %d pixels\n"
            "  File:        %s\n"
            "  Output path: %s\n",
-        params.colat, params.dist, params.fov,
+        params.colat, params.dist,
+        params.fov, params.quality,
+        ((scal_t *)&params.offset)[0],
+        ((scal_t *)&params.offset)[1],
+        ((scal_t *)&params.offset)[2],
         params.fcnt, params.ftime,
         params.width, params.height,
         params.file, params.output);

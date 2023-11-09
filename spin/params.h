@@ -3,11 +3,15 @@
 #ifndef SPIN_PARAMS_H
 #define SPIN_PARAMS_H
 
+#include "rcmath.h"
+
 
 struct params {
     double      colat;      /* -a, --angle (colatitude in degrees) */
     double      dist;       /* -d, --dist (centroid distance) */
     double      fov;        /* -f, --fov (horizontal field of view) */
+    float       quality;    /* -q, --quality (image frame quality) */
+    vec_t       offset;     /* -o, --offset (constant centroid offset) */
     int         fcnt;       /* -n, --frames (number of frames) */
     int         ftime;      /* -t, --time (frame time in ms) */
     int         width;      /* -w, --width; also --dim WIDTH HEIGHT */
