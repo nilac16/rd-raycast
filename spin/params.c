@@ -33,6 +33,26 @@ enum {
 };
 
 
+const char *spin_get_usage_opt(void)
+/** I wonder how simple this would be to automate. It would have to obey the 80-
+ *  column limit
+ */
+{
+    static const char *options =
+"  -a, --angle  DEGREES Set the viewing colatitude angle to DEGREES\n"
+"  -d, --dist   DIST    Set the viewing distance to DIST\n"
+"  -f, --fov    DEGREES Set the field of view to DEGREES\n"
+"  -n, --frames COUNT   Set the number of frames to COUNT\n"
+"  -t, --time   MS      Set the frame time to MS\n"
+"  -w, --width  COUNT   Set the image width to COUNT pixels\n"
+"  -h, --height COUNT   Set the image height to COUNT pixels\n"
+"      --res    X Y     Set the image dimension to X horizontal pixels and Y\n"
+"      --dim    X Y     vertical pixels\n";
+
+    return options;
+}
+
+
 /** @brief Master callback for all options */
 static int main_optcb(int idx, unsigned count, char *args[], void *data)
 {

@@ -29,4 +29,8 @@ struct params {
 int spin_parse_opt(int argc, char *argv[], struct params *res);
 
 
+/** @brief Fetch the options table */
+const char *spin_get_usage_opt(void);
+
+
 #endif /* SPIN_PARAMS_H */

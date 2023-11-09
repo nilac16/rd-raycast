@@ -102,6 +102,20 @@ static int main_generate_image(const struct params *p)
 }
 
 
+static void main_print_usage(void)
+{
+    static const char *usage =
+"Usage: spin [OPTION] INPUT [OUTPUT]\n"
+"Create a rotating maximum-intensity projection of DICOM RTDose file INPUT. If\n"
+"an OUTPUT filename is not provided, the result will be written to output.webp\n"
+"in the current directory\n";
+
+    puts(usage);
+    puts("Options:");
+    puts(spin_get_usage_opt());
+}
+
+
 int main(int argc, char *argv[])
 {
     struct params params = {
@@ -120,7 +134,8 @@ int main(int argc, char *argv[])
         return 1;
     }
     if (!params.file) {
-        fputs("Supply an input file\n", stderr);
+        fputs("Missing input file\n", stderr);
+        main_print_usage();
         return 1;
     }
     printf("Creating an image with the following parameters:\n"
