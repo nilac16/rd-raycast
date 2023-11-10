@@ -60,7 +60,7 @@ static int main_create_frames(struct scene        *sc,
                               struct anim         *anim)
 {
     double sect = (RC_PI * 2.0) / (double)p->fcnt;
-    double phi, theta = p->colat * (RC_PI / 180.0);
+    double phi, theta = p->lat * (RC_PI / 180.0);
     double costheta, sintheta, cosphi, sinphi;
     vec_t disp, radius, centr;
     int i;
@@ -73,7 +73,7 @@ static int main_create_frames(struct scene        *sc,
         phi = (double)i * sect;
         cosphi = cos(phi);
         sinphi = sin(phi);
-        disp = rc_set(sintheta * sinphi, -sintheta * cosphi, costheta, 0.0);
+        disp = rc_set(costheta * sinphi, -costheta * cosphi, sintheta, 0.0);
         sc->camera.org = rc_fmadd(disp, radius, centr);
         rc_cam_lookat(&sc->camera, centr);
         rc_raycast_dose(&sc->dose, &sc->target, &sc->cmap.base, &sc->camera);
@@ -120,7 +120,7 @@ static void main_print_usage(void)
 int main(int argc, char *argv[])
 {
     struct params params = {
-        .colat   = 90,
+        .lat   = 90,
         .dist    = 200,
         .fov     = 75,
         .quality = 50.0f,
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
         return 1;
     }
     printf("Creating an image with the following parameters:\n"
-           "  Colatitude:  %g degrees\n"
+           "  Latitude:    %g degrees\n"
            "  Distance:    %g units\n"
            "  FOV:         %g degrees\n"
            "  Quality:     %.2f%%\n"
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
            "  Height:      %d pixels\n"
            "  File:        %s\n"
            "  Output path: %s\n",
-        params.colat, params.dist,
+        params.lat, params.dist,
         params.fov, params.quality,
         ((scal_t *)&params.offset)[0],
         ((scal_t *)&params.offset)[1],

@@ -42,7 +42,7 @@ const char *spin_get_usage_opt(void)
  */
 {
     static const char *options =
-"  -a, --angle   DEGREES    Set the viewing colatitude angle to DEGREES\n"
+"  -a, --angle   DEGREES    Set the viewing latitude angle to DEGREES\n"
 "  -d, --dist    DIST       Set the viewing distance to DIST\n"
 "  -f, --fov     DEGREES    Set the field of view to DEGREES\n"
 "  -q, --quality PERCENT    Set the frame compression quality to PERCENT\n"
@@ -72,7 +72,7 @@ static int main_optcb(int idx, unsigned count, char *args[], void *data)
     }
     switch (idx) {
     case OPT_ANGLE:
-        p->colat = atof(args[0]);
+        p->lat = atof(args[0]);
         break;
     case OPT_DIST:
         p->dist = atof(args[0]);

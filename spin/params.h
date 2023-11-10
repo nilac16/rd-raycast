@@ -7,7 +7,7 @@
 
 
 struct params {
-    double      colat;      /* -a, --angle (colatitude in degrees) */
+    double      lat;        /* -a, --angle (colatitude in degrees) */
     double      dist;       /* -d, --dist (centroid distance) */
     double      fov;        /* -f, --fov (horizontal field of view) */
     float       quality;    /* -q, --quality (image frame quality) */
