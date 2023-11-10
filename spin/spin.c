@@ -11,6 +11,20 @@
 extern void dose_cmapfn(struct rc_colormap *this, double dose, void *pixel);
 
 
+/** Copy the blue channel to the alpha channel */
+void spin_cmapfn(struct rc_colormap *this, double dose, void *pixel)
+{
+    union {
+        uint32_t data;
+        uint8_t  comp[4];
+    } px;
+
+    dose_cmapfn(this, dose, &px);
+    px.comp[3] = px.comp[0];
+    *(uint32_t *)pixel = px.data;
+}
+
+
 struct scene {
     struct rc_dose   dose;
     struct dose_cmap cmap;
@@ -31,6 +45,7 @@ static int main_prepare_scene(struct scene *sc, const struct params *p)
     }
     rc_dose_compact(&sc->dose, 0.05);
     dose_cmap_init(&sc->cmap, sc->dose.dmax);
+    sc->cmap.base.func = spin_cmapfn;
     sc->screen.dim[0] = sc->target.tex.dim[0] = p->width;
     sc->screen.dim[1] = sc->target.tex.dim[1] = p->height;
     sc->screen.fov = p->fov;
