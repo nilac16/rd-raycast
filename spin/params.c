@@ -46,11 +46,11 @@ const char *spin_get_usage_opt(void)
 "  -d, --dist    DIST       Set the viewing distance to DIST\n"
 "  -f, --fov     DEGREES    Set the field of view to DEGREES\n"
 "  -q, --quality PERCENT    Set the frame compression quality to PERCENT\n"
-"  -o, --offset  X Y Z      Set the components  centroid\n"
+"  -o, --offset  X Y Z      Offset the camera target by X Y Z\n"
 "  -n, --frames  COUNT      Set the number of frames to COUNT\n"
 "  -t, --time    MS         Set the frame time to MS\n"
-"  -w, --width   COUNT      Set the image width to COUNT pixels\n"
-"  -h, --height  COUNT      Set the image height to COUNT pixels\n"
+"  -w, --width   X          Set the image width to X pixels\n"
+"  -h, --height  Y          Set the image height to Y pixels\n"
 "      --res     X Y        Set the image dimensions to X horizontal pixels and Y\n"
 "      --dim     X Y        vertical pixels\n";
 

@@ -115,8 +115,8 @@ static bool rc_hit_test(vec_t test, vec_t endp)
 }
 
 
-/** @brief Compute intersection parameters for a line passing through point @p p
- *      and with tangent vector @p t
+/** @brief Compute affine parameters for the intersection with @p dose of a line
+ *      passing through point @p p with tangent vector @p t
  *  @param dose
  *      Dose volume to intersect
  *  @param p
@@ -125,7 +125,7 @@ static bool rc_hit_test(vec_t test, vec_t endp)
  *      Tangent vector
  *  @param isect
  *      Intersection parameters will be placed here. There must be at least two
- *  @returns The number of intersections, either two of zero
+ *  @returns The number of intersections, either two or zero
  */
 static int rc_raycast_intersect(const struct rc_dose *dose,
                                 vec_t                 p,
@@ -194,8 +194,8 @@ static int rc_raycast_intersect(const struct rc_dose *dose,
 }
 
 
-/** @brief Compute the pixel dose for a ray given by coordinate @p pos and
- *      tangent vector @p tangent
+/** @brief Compute the pixel dose for a ray given by homogeneous coordinates
+ *      @p pos and tangent vector @p tangent
  *  @param dose
  *      Dose to raycast
  *  @param pos

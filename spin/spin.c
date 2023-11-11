@@ -1,7 +1,5 @@
-#include <alloca.h>
 #include <stdio.h>
-#include <string.h>
-#include <webp/encode.h>
+#include <stdlib.h>
 #include "params.h"
 #include "anim.h"
 #include "raycast.h"
@@ -135,9 +133,9 @@ static void main_print_usage(void)
 int main(int argc, char *argv[])
 {
     struct params params = {
-        .lat   = 90,
-        .dist    = 200,
-        .fov     = 75,
+        .lat     = 0.0,
+        .dist    = 200.0,
+        .fov     = 75.0,
         .quality = 50.0f,
         .offset  = rc_zero(),
         .fcnt    = 8,
