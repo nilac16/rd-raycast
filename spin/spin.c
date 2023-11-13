@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
            "  Latitude:    %g degrees\n"
            "  Distance:    %g units\n"
            "  FOV:         %g degrees\n"
-           "  Quality:     %.2f%%\n"
+           "  Quality:     %g%%\n"
            "  Offset:      %g %g %g\n"
            "  Frame count: %d\n"
            "  Frame time:  %d ms\n"

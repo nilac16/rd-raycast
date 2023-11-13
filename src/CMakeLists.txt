@@ -23,8 +23,8 @@ add_library(rd-raycast
             cmap.c)
 
 target_link_libraries(rd-raycast
-               PUBLIC ${CMATH_LIBRARIES}
-              PRIVATE DCMTK::DCMTK OpenMP::OpenMP_C)
+               PUBLIC ${CMATH_LIBRARIES} OpenMP::OpenMP_C
+              PRIVATE DCMTK::DCMTK)
 
 # Add optimization flags
 if(MSVC)

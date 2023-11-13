@@ -102,7 +102,7 @@ int rc_matrix_invert(const vec_t mat[], vec_t inv[])
  *      Quaternion
  *  @returns The reciprocal of @p q
  */
-static inline vec_t rc_qrecip(vec_t q)
+static vec_t rc_qrecip(vec_t q)
 {
     return rc_div(rc_qconj(q), rc_vsqrnorm(q));
 }
