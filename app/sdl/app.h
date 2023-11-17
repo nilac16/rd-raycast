@@ -26,6 +26,8 @@ struct rc_app {
     struct dose_cmap cmap;
     struct rc_dose   dose;
 
+    rc_dose_interpfn_t *interpfn;
+
     /* Rotation quaternions for moving the camera */
     vec_t pitch;    /* Pitch the camera up and down about ITS x-axis */
     vec_t yaw;      /* Yaw the camera left and right about SCENE z-axis */

@@ -268,26 +268,114 @@ static bool rc_dose_bounds_check(const struct rc_dose *dose, __m128i idx)
 }
 
 
-extern "C" double rc_dose_nearest(const struct rc_dose *dose, vec_t pos)
+/** @brief Access the dose at coordinates @p idx
+ *  @param dose
+ *      Dose volume
+ *  @param idx
+ *      Index vector
+ *  @returns The dose value at @p idx. This includes zero if @p idx is out-of-
+ *      bounds
+ */
+static double rc_dose_access(const struct rc_dose *dose, __m128i idx)
+    noexcept
 {
-    /* Idk if this is really UB since vectors are allowed to break strict
-    aliasing... At any rate, GCC has a great time figuring out what I want to do
-    when I use these unions */
     union {
         __m128i idx;
         int     xmm[4];
     } u;
-    double res = 0.0;
     unsigned n;
 
-    /* No need to round if I'm bounds checking (Not really nearest then...) */
-    //pos = rc_round(pos, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
-    u.idx = _mm_cvtps_epi32(pos);
+    u.idx = idx;
     n = u.xmm[0] + dose->dim[0] * (u.xmm[1] + dose->dim[1] * u.xmm[2]);
-    if (rc_dose_bounds_check(dose, u.idx)) {
-        res = dose->data[n];
-    }
-    return res;
+    return rc_dose_bounds_check(dose, idx) ? dose->data[n] : 0.0;
+}
+
+
+extern "C" double rc_dose_nearest(const struct rc_dose *dose, vec_t pos)
+{
+    __m128i idx;
+
+    /* Use the default rounding mode on cvtps_epi32 */
+    //pos = rc_round(pos, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    idx = _mm_cvtps_epi32(pos);
+    return rc_dose_access(dose, idx);
+}
+
+
+union interpolant {
+    __m256d ymm[2];
+    __m128d xmm[4];
+    double  mm[8];
+
+
+    /** @brief Load the interpolant using cell origin coordinates @p org
+     *  @param dose
+     *      Dose from which to load
+     *  @param org
+     *      Origin coordinates of the interpolant cell
+     */
+    void load(const struct rc_dose *dose, __m128i org) noexcept;
+
+
+    /** @brief Evaluate the interpolate at real unit-relative position @p pos
+     *  @param pos
+     *      Unitized cell coordinates within which to interpolate. These can
+     *      safely be out-of-range, but the result may not make much sense
+     *  @returns The interpolated value, always
+     */
+    double evaluate(vec_t pos) noexcept;
+};
+
+
+void interpolant::load(const struct rc_dose *dose, __m128i org)
+    noexcept
+{
+    __m128i up, xoffs, yoffs, loffs;
+
+    up = _mm_add_epi32(org, _mm_set_epi32(0, 1, 0, 0));
+    xoffs = _mm_set_epi32(0, 0, 0, 1);
+    yoffs = _mm_set_epi32(0, 0, 1, 0);
+    loffs = _mm_set_epi32(0, 0, 1, 1);
+
+    mm[0] = rc_dose_access(dose, org);
+    mm[1] = rc_dose_access(dose, _mm_add_epi32(org, xoffs));
+    mm[2] = rc_dose_access(dose, _mm_add_epi32(org, yoffs));
+    mm[3] = rc_dose_access(dose, _mm_add_epi32(org, loffs));
+    mm[4] = rc_dose_access(dose, up);
+    mm[5] = rc_dose_access(dose, _mm_add_epi32(up, xoffs));
+    mm[6] = rc_dose_access(dose, _mm_add_epi32(up, yoffs));
+    mm[7] = rc_dose_access(dose, _mm_add_epi32(up, loffs));
+
+    ymm[1] = _mm256_sub_pd(ymm[1], ymm[0]);
+    xmm[3] = _mm_sub_pd(xmm[3], xmm[2]);
+    xmm[1] = _mm_sub_pd(xmm[1], xmm[0]);
+    mm[7] -= mm[6];
+    mm[5] -= mm[4];
+    mm[3] -= mm[2];
+    mm[1] -= mm[0];
+}
+
+
+double interpolant::evaluate(vec_t pos)
+    noexcept
+{
+    RC_ALIGN scal_t x[4];
+
+    rc_spill(x, pos);
+    ymm[0] = _mm256_fmadd_pd(ymm[1], _mm256_set1_pd(x[2]), ymm[0]);
+    xmm[0] = _mm_fmadd_pd(xmm[1], _mm_set1_pd(x[1]), xmm[0]);
+    return std::fma(mm[1], x[0], mm[0]);
+}
+
+
+extern "C" double rc_dose_linear(const struct rc_dose *dose, vec_t pos)
+{
+    union interpolant interp;
+    __m128i org;
+
+    pos = rc_vdecomp(pos, &org);
+    interp.load(dose, org);
+    return interp.evaluate(pos);
 }
 
 

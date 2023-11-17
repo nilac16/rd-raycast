@@ -149,7 +149,8 @@ void rc_target_update(struct rc_target *target, const struct rc_screen *screen);
 void rc_raycast_dose(const struct rc_dose *dose,
                      struct rc_target     *target,
                      struct rc_colormap   *cmap,
-                     const struct rc_cam  *camera);
+                     const struct rc_cam  *camera,
+                     rc_dose_interpfn_t   *dosefn);
 
 
 #endif /* RAYCAST_H */

@@ -64,7 +64,6 @@ typedef __m128 vec_t;
 #define rc_cvtsf(v)             _mm_cvtss_f32(v)
 
 /** @brief Convert packed 32-bit integers to a floating-point vector
- *  @todo I don't like this name, and it's only referenced once so far
  */
 #define rc_cvtep(v)             _mm_cvtepi32_ps(v)
 
@@ -164,6 +163,25 @@ static inline vec_t rc_cross(vec_t a, vec_t b)
     res = rc_mul(b, aperm);
     res = rc_fmsub(a, bperm, res);
     return rc_permute(res, _MM_SHUFFLE(3, 0, 2, 1));
+}
+
+
+/** @brief Decompose @p x into integral and fractional parts
+ *  @param x
+ *      Input
+ *  @param[out] idx
+ *      The integral part of @p x is written here. This is always @p x rounded
+ *      towards negative infinity
+ *  @returns The fractional part of @p x. This will never contain negative
+ *      components (i.e. @p idx + ret = @p x unless @p x contains NaN)
+ */
+static inline vec_t rc_vdecomp(vec_t x, __m128i *idx)
+{
+    vec_t flr;
+
+    flr = rc_floor(x);
+    *idx = _mm_cvtps_epi32(flr);
+    return rc_sub(x, flr);
 }
 
 

@@ -89,7 +89,11 @@ static int main_create_frames(struct scene        *sc,
         disp = rc_set(costheta * sinphi, -costheta * cosphi, sintheta, 0.0);
         sc->camera.org = rc_fmadd(disp, radius, centr);
         rc_cam_lookat(&sc->camera, centr);
-        rc_raycast_dose(&sc->dose, &sc->target, &sc->cmap.base, &sc->camera);
+        rc_raycast_dose(&sc->dose,
+                        &sc->target,
+                        &sc->cmap.base,
+                        &sc->camera,
+                        rc_dose_nearest);
         if (anim_add_frame(anim, sc->target.tex.pixels)) {
             return 1;
         }

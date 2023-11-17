@@ -206,6 +206,7 @@ static int rc_raycast_intersect(const struct rc_dose *dose,
  *  @returns The dose picked out for this ray
  */
 static double rc_raycast_compute(const struct rc_dose *dose,
+                                 rc_dose_interpfn_t   *dosefn,
                                  vec_t                 pos,
                                  vec_t                 tangent)
 {
@@ -224,7 +225,7 @@ static double rc_raycast_compute(const struct rc_dose *dose,
         tau = (int)rc_cvtsf(params[2]);
         end = (int)rc_cvtsf(params[3]);
         for (; tau < end; tau += 1) {
-            next = rc_dose_nearest(dose, pos);
+            next = dosefn(dose, pos);
             res = rc_fmax(next, res);
             pos = rc_add(pos, tangent);
         }
@@ -304,7 +305,8 @@ static void rc_raycast_empty(struct rc_target *target, struct rc_colormap *cmap)
 void rc_raycast_dose(const struct rc_dose *dose,
                      struct rc_target     *target,
                      struct rc_colormap   *cmap,
-                     const struct rc_cam  *camera)
+                     const struct rc_cam  *camera,
+                     rc_dose_interpfn_t   *dosefn)
 {
     vec_t scanpos, pxpos, tangent;
     struct rc_basis basis;
@@ -329,7 +331,7 @@ void rc_raycast_dose(const struct rc_dose *dose,
         for (i = 0; i < target->tex.dim[0]; i++) {
             pxpos = rc_fmadd(basis.x, rc_set1((scal_t)i), scanpos);
             tangent = rc_sub(pxpos, camera->org);
-            res = rc_raycast_compute(dose, pxpos, tangent);
+            res = rc_raycast_compute(dose, dosefn, pxpos, tangent);
             cmap->func(cmap, res, ptr);
             ptr += target->tex.stride;
         }

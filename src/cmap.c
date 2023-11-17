@@ -30,12 +30,13 @@ void dose_cmapfn(struct rc_colormap *this, double dose, void *pixel)
 
     rel = dose * cm->norm;
     x = rel * (float)len;
-    x = modff(x, &z);
+    z = floor(x);
+    x -= z;
     idx = (int)z;
     lo = _mm_load_ps(prot[idx]);
     diff = _mm_load_ps(prot[idx + 1]);
     diff = _mm_sub_ps(diff, lo);
-    u.vec = rc_fmadd(rc_set1(x), diff, lo);
+    u.vec = _mm_fmadd_ps(_mm_set1_ps(x), diff, lo);
     *(union pixel4 *)pixel = (union pixel4){
         .comp = { u.xmm[0], u.xmm[1], u.xmm[2], u.xmm[3] }
     };

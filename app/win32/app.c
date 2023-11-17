@@ -682,7 +682,11 @@ static void rc_app_update(struct rc_app *app)
         rc_process_input(app);
     }
     if (app->dirty) {
-        rc_raycast_dose(&app->dose, &app->target, &app->cmap, &app->camera);
+        rc_raycast_dose(&app->dose,
+                        &app->target,
+                        &app->cmap,
+                        &app->camera,
+                        rc_dose_nearest);
         InvalidateRect(app->hwnd, NULL, FALSE);
         app->dirty = false;
     }

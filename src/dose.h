@@ -39,6 +39,17 @@ int rc_dose_load(struct rc_dose *dose, const char *dcm);
 void rc_dose_clear(struct rc_dose *dose);
 
 
+/** @brief Signature for a function that interpolates a dose value at a given
+ *      position
+ *  @param dose
+ *      The dose volume
+ *  @param pos
+ *      Real-valued pixel coordinates
+ *  @returns The interpolated dose
+ */
+typedef double rc_dose_interpfn_t(const struct rc_dose *dose, vec_t pos);
+
+
 /** @brief Find the nearest dose value to the (real) pixel coordinates @p pos
  *  @param dose
  *      Dose
@@ -48,6 +59,17 @@ void rc_dose_clear(struct rc_dose *dose);
  *  @returns The nearest @p dose value to @p pos
  */
 double rc_dose_nearest(const struct rc_dose *dose, vec_t pos);
+
+
+/** @brief Linearly interpolate the dose at real pixel coordinates @p pos
+ *  @param dose
+ *      Dose volume
+ *  @param pos
+ *      Pixel position over the reals
+ *  @returns The interpolated dose at @p pos. Corner doses out-of-bounds are
+ *      clamped to zero. This may result in oddly smoothed edge artifacts
+ */
+double rc_dose_linear(const struct rc_dose *dose, vec_t pos);
 
 
 /** @brief Compact @p dose by removing all boundary regions below a threshold.

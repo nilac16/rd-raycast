@@ -148,6 +148,7 @@ static int rc_app_init_dose(struct rc_app *app, const char *path)
     if (rc_dose_compact(&app->dose, threshold)) {
         fputs("Couldn't compact the dose\n", stderr);
     }
+    app->interpfn = rc_dose_nearest;
     return 0;
 }
 
@@ -677,7 +678,11 @@ static void rc_app_redraw(struct rc_app *app)
     int pitch;
 
     SDL_LockTexture(app->tex, NULL, &app->target.tex.pixels, &pitch);
-    rc_raycast_dose(&app->dose, &app->target, &app->cmap.base, &app->camera);
+    rc_raycast_dose(&app->dose,
+                    &app->target,
+                    &app->cmap.base,
+                    &app->camera,
+                    app->interpfn);
     SDL_UnlockTexture(app->tex);
     SDL_RenderCopy(app->rend, app->tex, NULL, NULL);
     SDL_RenderPresent(app->rend);
