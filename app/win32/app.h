@@ -29,6 +29,7 @@ struct rc_app {
     bool dirty;
     bool shouldquit;
     bool autotarget;
+    bool linear;
 
     struct rc_target target;
     struct rc_cam    camera;

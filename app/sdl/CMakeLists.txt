@@ -5,7 +5,7 @@ list(APPEND MAIN_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR})
 set(EXE_NAME ${PROJECT_NAME})
 
 add_executable(${EXE_NAME}
-               ${MAIN_FILE}
+               ${MAIN_FILES}
                app.c)
 
 target_link_libraries(${EXE_NAME}

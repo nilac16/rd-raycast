@@ -138,7 +138,7 @@ static int rc_app_start_sdl(struct rc_app              *app,
  */
 static int rc_app_init_dose(struct rc_app *app, const char *path)
 {
-    const double threshold = 0.01;
+    const double threshold = 0.05;
 
     if (rc_dose_load(&app->dose, path)) {
         fprintf(stderr, "Couldn't load dose file at %s\n",
@@ -148,7 +148,6 @@ static int rc_app_init_dose(struct rc_app *app, const char *path)
     if (rc_dose_compact(&app->dose, threshold)) {
         fputs("Couldn't compact the dose\n", stderr);
     }
-    app->interpfn = rc_dose_nearest;
     return 0;
 }
 
@@ -314,6 +313,7 @@ static int rc_app_init_settings(struct rc_app              *app,
     app->turbomult = mult * params->turbo;
     app->slowmult  = mult * params->slow;
     app->keystate = SDL_GetKeyboardState(&app->nkeys);
+    app->interpfn = params->linear ? rc_dose_linear : rc_dose_nearest;
     return 0;
 }
 

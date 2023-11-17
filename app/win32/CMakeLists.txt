@@ -1,7 +1,7 @@
 list(APPEND MAIN_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR})
 
 add_executable(${PROJECT_NAME}
-               ${MAIN_FILE}
+               ${MAIN_FILES}
                app.c
                error.c)
 

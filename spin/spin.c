@@ -93,7 +93,7 @@ static int main_create_frames(struct scene        *sc,
                         &sc->target,
                         &sc->cmap.base,
                         &sc->camera,
-                        rc_dose_nearest);
+                        p->linear ? rc_dose_linear : rc_dose_nearest);
         if (anim_add_frame(anim, sc->target.tex.pixels)) {
             return 1;
         }
@@ -151,6 +151,7 @@ int main(int argc, char *argv[])
     };
 
     if (spin_parse_opt(argc, argv, &params)) {
+        main_print_usage();
         return 1;
     }
     if (!params.file) {

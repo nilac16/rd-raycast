@@ -503,6 +503,7 @@ static int rc_app_copy_params(struct rc_app              *app,
     app->speed = mult * params->speed;
     app->slow  = mult * params->slow;
     app->turbo = mult * params->turbo;
+    app->linear = params->linear;
     return 0;
 }
 
@@ -686,7 +687,7 @@ static void rc_app_update(struct rc_app *app)
                         &app->target,
                         &app->cmap,
                         &app->camera,
-                        rc_dose_nearest);
+                        app->linear ? rc_dose_linear : rc_dose_nearest);
         InvalidateRect(app->hwnd, NULL, FALSE);
         app->dirty = false;
     }

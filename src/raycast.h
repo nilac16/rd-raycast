@@ -145,6 +145,8 @@ void rc_target_update(struct rc_target *target, const struct rc_screen *screen);
  *      Colormap
  *  @param camera
  *      Camera information
+ *  @param dosefn
+ *      Interpolator function applied to @p dose
  */
 void rc_raycast_dose(const struct rc_dose *dose,
                      struct rc_target     *target,

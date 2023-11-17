@@ -124,8 +124,12 @@ static bool rc_hit_test(vec_t test, vec_t endp)
  *  @param t
  *      Tangent vector
  *  @param isect
- *      Intersection parameters will be placed here. There must be at least two
- *  @returns The number of intersections, either two or zero
+ *      Intersection parameters will be placed here. There should theoretically
+ *      only be two, but for safety make sure there are at least six
+ *  @returns The number of intersections, either two or zero (theoretically). If
+ *      more than that are found by this function, it is due either to a bug in
+ *      its implementation or the IEEE representation interacting with this
+ *      specific scene geometry
  */
 static int rc_raycast_intersect(const struct rc_dose *dose,
                                 vec_t                 p,
@@ -198,6 +202,8 @@ static int rc_raycast_intersect(const struct rc_dose *dose,
  *      @p pos and tangent vector @p tangent
  *  @param dose
  *      Dose to raycast
+ *  @param dosefn
+ *      Interpolator function applied to @p dose
  *  @param pos
  *      Ambient position of the point on the line
  *  @param tangent

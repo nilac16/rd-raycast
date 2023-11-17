@@ -16,6 +16,7 @@ struct params {
     int         ftime;      /* -t, --time (frame time in ms) */
     int         width;      /* -w, --width; also --dim WIDTH HEIGHT */
     int         height;     /* -h, --height; also --dim WIDTH HEIGHT */
+    int         linear;     /* -l, --linear (use linear interpolation?) */
     const char *file;       /* The input file (positional argument zero) */
     const char *output;     /* The output path (positional argument one) */
 };

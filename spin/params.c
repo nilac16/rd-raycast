@@ -2,7 +2,7 @@
 #include "params.h"
 #include "rcmath.h"
 #define OPT_IMPLEMENTATION 1
-#include "opt.h"
+#include <opt.h>
 
 
 
@@ -16,6 +16,7 @@ static struct optspec opts[] = {
     { .shrt = 'o', .lng = "offset",  .args = 3, .func = main_optcb },
     { .shrt = 'n', .lng = "frames",  .args = 1, .func = main_optcb },
     { .shrt = 't', .lng = "time",    .args = 1, .func = main_optcb },
+    { .shrt = 'l', .lng = "linear",  .args = 0, .func = main_optcb },
     { .shrt = 'w', .lng = "width",   .args = 1, .func = main_optcb },
     { .shrt = 'h', .lng = "height",  .args = 1, .func = main_optcb },
     { .shrt = 0,   .lng = "dim",     .args = 2, .func = main_optcb },
@@ -30,6 +31,7 @@ enum {
     OPT_OFFSET,
     OPT_FRAMES,
     OPT_FTIME,
+    OPT_LINEAR,
     OPT_WIDTH,
     OPT_HEIGHT,
     OPT_DIM,
@@ -49,6 +51,7 @@ const char *spin_get_usage_opt(void)
 "  -o, --offset  X Y Z      Offset the camera target by X Y Z\n"
 "  -n, --frames  COUNT      Set the number of frames to COUNT\n"
 "  -t, --time    MS         Set the frame time to MS\n"
+"  -l, --linear             Use linear interpolation instead of nearest\n"
 "  -w, --width   X          Set the image width to X pixels\n"
 "  -h, --height  Y          Set the image height to Y pixels\n"
 "      --res     X Y        Set the image dimensions to X horizontal pixels and Y\n"
@@ -68,7 +71,7 @@ static int main_optcb(int idx, unsigned count, char *args[], void *data)
         fprintf(stderr,
                 "Warning: Option \"%s\" is missing %d required argument%s\n",
                 opts[idx].lng, diff, diff == 1 ? "" : "s");
-        return 0;   /* let it keep going? */
+        return 1;
     }
     switch (idx) {
     case OPT_ANGLE:
@@ -93,16 +96,18 @@ static int main_optcb(int idx, unsigned count, char *args[], void *data)
     case OPT_FTIME:
         p->ftime = atoi(args[0]);
         break;
+    case OPT_LINEAR:
+        p->linear = 1;
+        break;
+    case OPT_DIM:
+    case OPT_RES:
+        p->height = atoi(args[1]);
+        /* FALL THRU */
     case OPT_WIDTH:
         p->width = atoi(args[0]);
         break;
     case OPT_HEIGHT:
         p->height = atoi(args[0]);
-        break;
-    case OPT_DIM:
-    case OPT_RES:
-        p->width = atoi(args[0]);
-        p->height = atoi(args[1]);
         break;
     default:
         break;
