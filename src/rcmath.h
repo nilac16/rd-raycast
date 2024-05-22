@@ -305,7 +305,7 @@ static inline vec_t rc_vnegate(vec_t v)
  *  @param quat
  *      Unit quaternion
  *  @param v
- *      Vector to rotate.
+ *      Vector to rotate
  *  @returns The rotation of @p v
  */
 static inline vec_t rc_qrot(vec_t quat, vec_t v)

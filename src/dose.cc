@@ -313,9 +313,11 @@ union interpolant {
      *      Dose from which to load
      *  @param org
      *      Origin coordinates of the interpolant cell
+     *  @note This prepares coefficients for repeated application of Horner's
+     *      rule. If you are only interpolating a single value before destroying
+     *      this object, this is overkill---use single()
      */
     void load(const struct rc_dose *dose, __m128i org) noexcept;
-
 
     /** @brief Evaluate the interpolate at real unit-relative position @p pos
      *  @param pos
@@ -324,28 +326,34 @@ union interpolant {
      *  @returns The interpolated value, always
      */
     double evaluate(vec_t pos) noexcept;
+
+    /** @brief Interpolate the dose at a single point, without computing/storing
+     *      polynomial coefficients
+     *  @param dose
+     *      Dose to be interpolated
+     *  @param org
+     *      Origin coordinates of the cell
+     *  @param pos
+     *      Sublattice pixel coordinates within the cell at @p org
+     *  @returns The interpolated value without fail
+     */
+    double single(const struct rc_dose *dose, __m128i org, vec_t pos) noexcept;
+
+private:
+    /** @brief Load the values of the dose function at the corners of a cell
+     *  @param dose
+     *      Dose from which to load
+     *  @param org
+     *      Origin coordinates of the cell to load
+     */
+    void load_corners(const struct rc_dose *dose, __m128i org) noexcept;
 };
 
 
 void interpolant::load(const struct rc_dose *dose, __m128i org)
     noexcept
 {
-    __m128i up, xoffs, yoffs, loffs;
-
-    up = _mm_add_epi32(org, _mm_set_epi32(0, 1, 0, 0));
-    xoffs = _mm_set_epi32(0, 0, 0, 1);
-    yoffs = _mm_set_epi32(0, 0, 1, 0);
-    loffs = _mm_set_epi32(0, 0, 1, 1);
-
-    mm[0] = rc_dose_access(dose, org);
-    mm[1] = rc_dose_access(dose, _mm_add_epi32(org, xoffs));
-    mm[2] = rc_dose_access(dose, _mm_add_epi32(org, yoffs));
-    mm[3] = rc_dose_access(dose, _mm_add_epi32(org, loffs));
-    mm[4] = rc_dose_access(dose, up);
-    mm[5] = rc_dose_access(dose, _mm_add_epi32(up, xoffs));
-    mm[6] = rc_dose_access(dose, _mm_add_epi32(up, yoffs));
-    mm[7] = rc_dose_access(dose, _mm_add_epi32(up, loffs));
-
+    load_corners(dose, org);
     ymm[1] = _mm256_sub_pd(ymm[1], ymm[0]);
     xmm[3] = _mm_sub_pd(xmm[3], xmm[2]);
     xmm[1] = _mm_sub_pd(xmm[1], xmm[0]);
@@ -368,14 +376,49 @@ double interpolant::evaluate(vec_t pos)
 }
 
 
+double interpolant::single(const struct rc_dose *dose, __m128i org, vec_t pos)
+    noexcept
+{
+    RC_ALIGN scal_t x[4];
+
+    load_corners(dose, org);
+    rc_spill(x, pos);
+    ymm[0] = _mm256_add_pd(_mm256_mul_pd(ymm[0], _mm256_set1_pd(1.0 - x[2])),
+                           _mm256_mul_pd(ymm[1], _mm256_set1_pd(x[2])));
+    xmm[0] = _mm_add_pd(_mm_mul_pd(xmm[0], _mm_set1_pd(1.0 - x[1])),
+                        _mm_mul_pd(xmm[1], _mm_set1_pd(x[1])));
+    return mm[0] * (1.0 - x[0]) + mm[1] * x[0];
+}
+
+
+void interpolant::load_corners(const struct rc_dose *dose, __m128i org)
+    noexcept
+{
+    __m128i up, xoffs, yoffs, loffs;
+
+    up = _mm_add_epi32(org, _mm_set_epi32(0, 1, 0, 0));
+    xoffs = _mm_set_epi32(0, 0, 0, 1);
+    yoffs = _mm_set_epi32(0, 0, 1, 0);
+    loffs = _mm_set_epi32(0, 0, 1, 1);
+
+    mm[0] = rc_dose_access(dose, org);
+    mm[1] = rc_dose_access(dose, _mm_add_epi32(org, xoffs));
+    mm[2] = rc_dose_access(dose, _mm_add_epi32(org, yoffs));
+    mm[3] = rc_dose_access(dose, _mm_add_epi32(org, loffs));
+    mm[4] = rc_dose_access(dose, up);
+    mm[5] = rc_dose_access(dose, _mm_add_epi32(up, xoffs));
+    mm[6] = rc_dose_access(dose, _mm_add_epi32(up, yoffs));
+    mm[7] = rc_dose_access(dose, _mm_add_epi32(up, loffs));
+}
+
+
 extern "C" double rc_dose_linear(const struct rc_dose *dose, vec_t pos)
 {
     union interpolant interp;
     __m128i org;
 
     pos = rc_vdecomp(pos, &org);
-    interp.load(dose, org);
-    return interp.evaluate(pos);
+    return interp.single(dose, org, pos);
 }
 
 
