@@ -379,15 +379,16 @@ double interpolant::evaluate(vec_t pos)
 double interpolant::single(const struct rc_dose *dose, __m128i org, vec_t pos)
     noexcept
 {
-    RC_ALIGN scal_t x[4];
+    RC_ALIGN scal_t x[4], onemx[4];
 
     load_corners(dose, org);
     rc_spill(x, pos);
-    ymm[0] = _mm256_add_pd(_mm256_mul_pd(ymm[0], _mm256_set1_pd(1.0 - x[2])),
+    rc_spill(onemx, rc_sub(rc_set1(1.0), pos));
+    ymm[0] = _mm256_add_pd(_mm256_mul_pd(ymm[0], _mm256_set1_pd(onemx[2])),
                            _mm256_mul_pd(ymm[1], _mm256_set1_pd(x[2])));
-    xmm[0] = _mm_add_pd(_mm_mul_pd(xmm[0], _mm_set1_pd(1.0 - x[1])),
+    xmm[0] = _mm_add_pd(_mm_mul_pd(xmm[0], _mm_set1_pd(onemx[1])),
                         _mm_mul_pd(xmm[1], _mm_set1_pd(x[1])));
-    return mm[0] * (1.0 - x[0]) + mm[1] * x[0];
+    return mm[0] * (onemx[0]) + mm[1] * x[0];
 }
 
 

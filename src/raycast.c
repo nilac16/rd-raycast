@@ -205,7 +205,7 @@ static int rc_raycast_intersect(const struct rc_dose *dose,
  *  @param dosefn
  *      Interpolator function applied to @p dose
  *  @param pos
- *      Ambient position of the point on the line
+ *      ~~Ambient~~Dose pixelspace position of the point on the line
  *  @param tangent
  *      Tangent vector in the ambient space. This does not need to be normalized
  *      (and should not, because it will be in this function)
@@ -220,7 +220,6 @@ static double rc_raycast_compute(const struct rc_dose *dose,
     int count, tau, end;
     vec_t params[6];
 
-    pos = rc_mvmul4(dose->inv, pos);
     tangent = rc_mvmul3(dose->inv, tangent);
     tangent = rc_vnorm(tangent);
     count = rc_raycast_intersect(dose, pos, tangent, params);
@@ -314,7 +313,7 @@ void rc_raycast_dose(const struct rc_dose *dose,
                      const struct rc_cam  *camera,
                      rc_dose_interpfn_t   *dosefn)
 {
-    vec_t scanpos, pxpos, tangent;
+    vec_t scanpos, pxpos, campos, tangent;
     struct rc_basis basis;
     unsigned i, offs;
     int j, jend = (int)target->tex.dim[1];
@@ -326,6 +325,7 @@ void rc_raycast_dose(const struct rc_dose *dose,
         return;
     }
     rc_raycast_basis(&basis, target, camera);
+    campos = rc_mvmul4(dose->inv, camera->org);
 
 #if _OPENMP
 #   pragma omp parallel for private(i, ptr, offs, scanpos, pxpos, tangent, res)
@@ -337,7 +337,7 @@ void rc_raycast_dose(const struct rc_dose *dose,
         for (i = 0; i < target->tex.dim[0]; i++) {
             pxpos = rc_fmadd(basis.x, rc_set1((scal_t)i), scanpos);
             tangent = rc_sub(pxpos, camera->org);
-            res = rc_raycast_compute(dose, dosefn, pxpos, tangent);
+            res = rc_raycast_compute(dose, dosefn, campos, tangent);
             cmap->func(cmap, res, ptr);
             ptr += target->tex.stride;
         }
